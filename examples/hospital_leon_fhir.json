@@ -1,0 +1,466 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p1",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55001"
+          }
+        ],
+        "name": [
+          {
+            "family": "Rodriguez Diaz",
+            "given": [
+              "Carmen"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1990-06-21",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34611222333"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "C/ Asturias 8"
+            ],
+            "city": "Leon",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "71456123E"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "A-"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 59.8
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 167
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/alergia",
+            "valueString": "Aspirina"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p2",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55002"
+          }
+        ],
+        "name": [
+          {
+            "family": "Iglesias Vega",
+            "given": [
+              "Mario"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1966-11-03",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34611444555"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "Plaza Mayor 2"
+            ],
+            "city": "Ponferrada",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "09812345Q"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "0+"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 92.3
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 175
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p3",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55003"
+          }
+        ],
+        "name": [
+          {
+            "family": "Fernandez Llamazares",
+            "given": [
+              "Rosa"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1952-02-14",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34611666777"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "Av. Ordoño II 15"
+            ],
+            "city": "Leon",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "10234876Z"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "B+"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 70.1
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 158
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/alergia",
+            "valueString": "Penicilina"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p4",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55004"
+          }
+        ],
+        "name": [
+          {
+            "family": "Garcia Robles",
+            "given": [
+              "Hector"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1984-09-09",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34611888999"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "C/ Ancha 3"
+            ],
+            "city": "Leon",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "71987654T"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "A+"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 83.5
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 181
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p5",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55005"
+          }
+        ],
+        "name": [
+          {
+            "family": "Martinez Alonso",
+            "given": [
+              "Lorena"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1999-04-27",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34612000111"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "C/ Real 44"
+            ],
+            "city": "Astorga",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "44556677L"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "0-"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 55.2
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 163
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/alergia",
+            "valueString": "Polen"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p6",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55006"
+          }
+        ],
+        "name": [
+          {
+            "family": "Gutierrez Prieto",
+            "given": [
+              "Felipe"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1941-12-18",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34612222333"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "C/ La Rua 10"
+            ],
+            "city": "La Bañeza",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "09765432T"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "AB-"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 68.9
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 169
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/alergia",
+            "valueString": "Yodo"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p7",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55007"
+          }
+        ],
+        "name": [
+          {
+            "family": "Lopez Cabero",
+            "given": [
+              "Nerea"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "2005-07-02",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34612444555"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "Av. Padre Isla 60"
+            ],
+            "city": "Leon",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "71223344A"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "A+"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 50.4
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 159
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p8",
+        "identifier": [
+          {
+            "system": "urn:hule:mrn",
+            "value": "MRN-55008"
+          }
+        ],
+        "name": [
+          {
+            "family": "Perez Arias",
+            "given": [
+              "Tomas"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1977-03-30",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+34612666777"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "C/ Camino de Santiago 7"
+            ],
+            "city": "Ponferrada",
+            "country": "ES"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/dni",
+            "valueString": "10998877R"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/grupo-sanguineo",
+            "valueString": "0+"
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/peso",
+            "valueDecimal": 101.0
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/altura",
+            "valueDecimal": 188
+          },
+          {
+            "url": "http://hule.sacyl.es/fhir/StructureDefinition/alergia",
+            "valueString": "Contraste yodado"
+          }
+        ]
+      }
+    }
+  ]
+}

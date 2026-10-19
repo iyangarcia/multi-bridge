@@ -1,0 +1,9 @@
+Nº Historia;DNI;Nombre;Apellidos;F. Nacimiento;Sexo;Teléfono móvil;Domicilio;Localidad;CP;Grupo sanguíneo;Peso (kg);Talla (cm);Alergias;Médico de cabecera
+HC-7781;10987654K;Elena;Blanco Ruiz;14/02/1978;M;600777888;C/ La Vega 15;Mieres;33600;0+;62,4;165;Ibuprofeno;Dra. Carmen Fueyo
+HC-7782;11223344P;Daniel;Cuesta Gil;30/09/1995;H;600999000;Av. Constitucion 7;Langreo;33900;A-;81;182;;Dr. Luis Prendes
+HC-7783;09876543R;Sofia;Alonso Rey;05/12/1958;M;600121314;C/ Fruela 3;Oviedo;33011;B+;70,2;158;Marisco;Dra. Carmen Fueyo
+HC-7784;10555666L;Jose Luis;Fernandez Muñiz;22/06/1950;H;600151617;C/ Teodoro Cuesta 4;Mieres;33600;A+;77,5;171;Penicilina;Dr. Luis Prendes
+HC-7785;71888999F;Laura;Garcia Pando;11/01/1987;M;600181920;C/ Dorado 12;Sama de Langreo;33900;0-;58;160;;Dra. Ana Rubiera
+HC-7786;10333444Q;Pelayo;Suarez Llaneza;03/03/1969;H;600212223;C/ Aller 8;Moreda;33670;AB+;95,3;180;Latex;Dra. Ana Rubiera
+HC-7787;71222333N;Noelia;Lada Garcia;19/08/2002;M;600242526;Av. Mejico 21;Mieres;33600;B-;52,6;157;Gluten;Dr. Luis Prendes
+HC-7788;09111222V;Adolfo;Rionda Diaz;27/10/1944;H;600272829;C/ Pumarabule 2;Turon;33610;0+;72;168;Metamizol;Dra. Carmen Fueyo
