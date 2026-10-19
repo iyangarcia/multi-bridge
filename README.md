@@ -113,6 +113,16 @@ Implement `normalize(text) -> list[ConceptMatch]` from `multibridge/terms/base.p
 in `multibridge/terms/__init__.py`. The profiler, CLI and tests use whatever normalizer is
 registered, so nothing else changes.
 
+## Privacy and the law
+
+Real patient data is health data under the GDPR. [docs/COMPLIANCE.md](docs/COMPLIANCE.md) lists every
+legal constraint (GDPR, LOPDGDD, Ley 41/2002, ENS, NIS2, AI Act, MDR) as a numbered, testable
+requirement with its status. In short:
+- development uses synthetic data only
+- real data stays inside the hospital
+- the AI is local and sees structure plus fake samples, never real identifiers
+- a human approves every mapping
+
 ## Honest limits
 
 - `terms/seed_es.py` is a **demo seed** of about 30 ICD-10 categories. Before real use, load the
