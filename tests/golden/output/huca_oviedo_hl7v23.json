@@ -1,0 +1,186 @@
+[
+  {
+    "paciente": {
+      "id": "NHC-10234",
+      "dni": "71234567B",
+      "nombre": "Lucia",
+      "apellidos": "Fernandez Alvarez",
+      "fecha_nacimiento": "1985-04-12",
+      "sexo": "female",
+      "telefono": "+34600111222"
+    },
+    "direccion": {
+      "calle": "C/ Uria 12",
+      "ciudad": "Oviedo",
+      "codigo_postal": "33003"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A+",
+      "peso_kg": 58.5,
+      "altura_cm": 164,
+      "alergia": "Penicilina",
+      "medico_responsable": "Pablo Martinez"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-10577",
+      "dni": "10456789M",
+      "nombre": "Javier",
+      "apellidos": "Garcia Menendez",
+      "fecha_nacimiento": "1972-01-28",
+      "sexo": "male",
+      "telefono": "+34600333444"
+    },
+    "direccion": {
+      "calle": "Av. Galicia 4",
+      "ciudad": "Gijon",
+      "codigo_postal": "33212"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O-",
+      "peso_kg": 88,
+      "altura_cm": 178,
+      "alergia": "Latex",
+      "medico_responsable": "Ana Suarez"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-11002",
+      "dni": "53123456T",
+      "nombre": "Marta",
+      "apellidos": "Lopez Prieto",
+      "fecha_nacimiento": "2001-09-07",
+      "sexo": "female",
+      "telefono": "+34600555666"
+    },
+    "direccion": {
+      "calle": "C/ Mayor 1",
+      "ciudad": "Aviles",
+      "codigo_postal": "33402"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "AB+",
+      "peso_kg": 54,
+      "altura_cm": 160,
+      "alergia": null,
+      "medico_responsable": "Pablo Martinez"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-11348",
+      "dni": "10234987H",
+      "nombre": "Manuel",
+      "apellidos": "Rodriguez Arguelles",
+      "fecha_nacimiento": "1949-03-15",
+      "sexo": "male",
+      "telefono": "+34600777111"
+    },
+    "direccion": {
+      "calle": "C/ Cervantes 22",
+      "ciudad": "Oviedo",
+      "codigo_postal": "33004"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A-",
+      "peso_kg": 79.2,
+      "altura_cm": 170,
+      "alergia": "Acido acetilsalicilico",
+      "medico_responsable": "Rosa Valdes"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-11590",
+      "dni": "11876543J",
+      "nombre": "Isabel",
+      "apellidos": "Sanchez Cuervo",
+      "fecha_nacimiento": "1967-08-30",
+      "sexo": "female",
+      "telefono": "+34600777222"
+    },
+    "direccion": {
+      "calle": "C/ Covadonga 9",
+      "ciudad": "Pola de Siero",
+      "codigo_postal": "33510"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O+",
+      "peso_kg": 66,
+      "altura_cm": 162,
+      "alergia": null,
+      "medico_responsable": "Jorge Alonso"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-11733",
+      "dni": "53987123W",
+      "nombre": "Alberto",
+      "apellidos": "Menendez Pelaez",
+      "fecha_nacimiento": "1988-02-19",
+      "sexo": "male",
+      "telefono": "+34600777333"
+    },
+    "direccion": {
+      "calle": "Av. Schulz 31",
+      "ciudad": "Gijon",
+      "codigo_postal": "33208"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "B+",
+      "peso_kg": 92.4,
+      "altura_cm": 185,
+      "alergia": "Sulfamidas",
+      "medico_responsable": "Ana Suarez"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-11901",
+      "dni": "71654321S",
+      "nombre": "Paula",
+      "apellidos": "Gonzalez Tuñon",
+      "fecha_nacimiento": "1993-06-11",
+      "sexo": "female",
+      "telefono": "+34600777444"
+    },
+    "direccion": {
+      "calle": "C/ Gascona 5",
+      "ciudad": "Oviedo",
+      "codigo_postal": "33001"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A+",
+      "peso_kg": 63.7,
+      "altura_cm": 168,
+      "alergia": "Frutos secos",
+      "medico_responsable": "Maria Iglesias"
+    }
+  },
+  {
+    "paciente": {
+      "id": "NHC-12056",
+      "dni": "10111222D",
+      "nombre": "Ramon",
+      "apellidos": "Alvarez Castro",
+      "fecha_nacimiento": "1956-01-04",
+      "sexo": "male",
+      "telefono": "+34600777555"
+    },
+    "direccion": {
+      "calle": "C/ La Cámara 40",
+      "ciudad": "Aviles",
+      "codigo_postal": "33401"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O-",
+      "peso_kg": 74.8,
+      "altura_cm": 166,
+      "alergia": null,
+      "medico_responsable": "Rosa Valdes"
+    }
+  }
+]

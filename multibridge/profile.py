@@ -54,7 +54,9 @@ def value_type(v: str, declared: str | None) -> tuple[str, str | None]:
             if len(digits) == n and digits.isdigit() and _valid(digits, fmt):
                 return kind, label
     for rx, fmt, label, kind in DATE_FORMATS:
-        if rx.match(v) and (fmt is None or _valid(v, fmt)):
+        # The shape decides the format; an impossible date (31/02) is the engine's job to reject,
+        # not a reason to stop treating the whole column as dates.
+        if rx.match(v):
             return kind, label
     if INT.match(v):
         return ("string", "leading zeros") if len(v) > 1 and v.lstrip("+-").startswith("0") else ("integer", None)

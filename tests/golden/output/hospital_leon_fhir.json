@@ -1,0 +1,186 @@
+[
+  {
+    "paciente": {
+      "id": "MRN-55001",
+      "dni": "71456123E",
+      "nombre": "Carmen",
+      "apellidos": "Rodriguez Diaz",
+      "fecha_nacimiento": "1990-06-21",
+      "sexo": "female",
+      "telefono": "+34611222333"
+    },
+    "direccion": {
+      "calle": "C/ Asturias 8",
+      "ciudad": "Leon",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A-",
+      "peso_kg": 59.8,
+      "altura_cm": 167,
+      "alergia": "Aspirina",
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55002",
+      "dni": "09812345Q",
+      "nombre": "Mario",
+      "apellidos": "Iglesias Vega",
+      "fecha_nacimiento": "1966-11-03",
+      "sexo": "male",
+      "telefono": "+34611444555"
+    },
+    "direccion": {
+      "calle": "Plaza Mayor 2",
+      "ciudad": "Ponferrada",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O+",
+      "peso_kg": 92.3,
+      "altura_cm": 175,
+      "alergia": null,
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55003",
+      "dni": "10234876Z",
+      "nombre": "Rosa",
+      "apellidos": "Fernandez Llamazares",
+      "fecha_nacimiento": "1952-02-14",
+      "sexo": "female",
+      "telefono": "+34611666777"
+    },
+    "direccion": {
+      "calle": "Av. Ordoño II 15",
+      "ciudad": "Leon",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "B+",
+      "peso_kg": 70.1,
+      "altura_cm": 158,
+      "alergia": "Penicilina",
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55004",
+      "dni": "71987654T",
+      "nombre": "Hector",
+      "apellidos": "Garcia Robles",
+      "fecha_nacimiento": "1984-09-09",
+      "sexo": "male",
+      "telefono": "+34611888999"
+    },
+    "direccion": {
+      "calle": "C/ Ancha 3",
+      "ciudad": "Leon",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A+",
+      "peso_kg": 83.5,
+      "altura_cm": 181,
+      "alergia": null,
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55005",
+      "dni": "44556677L",
+      "nombre": "Lorena",
+      "apellidos": "Martinez Alonso",
+      "fecha_nacimiento": "1999-04-27",
+      "sexo": "female",
+      "telefono": "+34612000111"
+    },
+    "direccion": {
+      "calle": "C/ Real 44",
+      "ciudad": "Astorga",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O-",
+      "peso_kg": 55.2,
+      "altura_cm": 163,
+      "alergia": "Polen",
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55006",
+      "dni": "09765432T",
+      "nombre": "Felipe",
+      "apellidos": "Gutierrez Prieto",
+      "fecha_nacimiento": "1941-12-18",
+      "sexo": "male",
+      "telefono": "+34612222333"
+    },
+    "direccion": {
+      "calle": "C/ La Rua 10",
+      "ciudad": "La Bañeza",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "AB-",
+      "peso_kg": 68.9,
+      "altura_cm": 169,
+      "alergia": "Yodo",
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55007",
+      "dni": "71223344A",
+      "nombre": "Nerea",
+      "apellidos": "Lopez Cabero",
+      "fecha_nacimiento": "2005-07-02",
+      "sexo": "female",
+      "telefono": "+34612444555"
+    },
+    "direccion": {
+      "calle": "Av. Padre Isla 60",
+      "ciudad": "Leon",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A+",
+      "peso_kg": 50.4,
+      "altura_cm": 159,
+      "alergia": null,
+      "medico_responsable": null
+    }
+  },
+  {
+    "paciente": {
+      "id": "MRN-55008",
+      "dni": "10998877R",
+      "nombre": "Tomas",
+      "apellidos": "Perez Arias",
+      "fecha_nacimiento": "1977-03-30",
+      "sexo": "male",
+      "telefono": "+34612666777"
+    },
+    "direccion": {
+      "calle": "C/ Camino de Santiago 7",
+      "ciudad": "Ponferrada",
+      "codigo_postal": null
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O+",
+      "peso_kg": 101,
+      "altura_cm": 188,
+      "alergia": "Contraste yodado",
+      "medico_responsable": null
+    }
+  }
+]

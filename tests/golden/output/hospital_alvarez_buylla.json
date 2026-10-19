@@ -1,0 +1,186 @@
+[
+  {
+    "paciente": {
+      "id": "HC-7781",
+      "dni": "10987654K",
+      "nombre": "Elena",
+      "apellidos": "Blanco Ruiz",
+      "fecha_nacimiento": "1978-02-14",
+      "sexo": "female",
+      "telefono": "+34600777888"
+    },
+    "direccion": {
+      "calle": "C/ La Vega 15",
+      "ciudad": "Mieres",
+      "codigo_postal": "33600"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O+",
+      "peso_kg": 62.4,
+      "altura_cm": 165,
+      "alergia": "Ibuprofeno",
+      "medico_responsable": "Dra. Carmen Fueyo"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7782",
+      "dni": "11223344P",
+      "nombre": "Daniel",
+      "apellidos": "Cuesta Gil",
+      "fecha_nacimiento": "1995-09-30",
+      "sexo": "male",
+      "telefono": "+34600999000"
+    },
+    "direccion": {
+      "calle": "Av. Constitucion 7",
+      "ciudad": "Langreo",
+      "codigo_postal": "33900"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A-",
+      "peso_kg": 81,
+      "altura_cm": 182,
+      "alergia": null,
+      "medico_responsable": "Dr. Luis Prendes"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7783",
+      "dni": "09876543R",
+      "nombre": "Sofia",
+      "apellidos": "Alonso Rey",
+      "fecha_nacimiento": "1958-12-05",
+      "sexo": "female",
+      "telefono": "+34600121314"
+    },
+    "direccion": {
+      "calle": "C/ Fruela 3",
+      "ciudad": "Oviedo",
+      "codigo_postal": "33011"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "B+",
+      "peso_kg": 70.2,
+      "altura_cm": 158,
+      "alergia": "Marisco",
+      "medico_responsable": "Dra. Carmen Fueyo"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7784",
+      "dni": "10555666L",
+      "nombre": "Jose Luis",
+      "apellidos": "Fernandez Muñiz",
+      "fecha_nacimiento": "1950-06-22",
+      "sexo": "male",
+      "telefono": "+34600151617"
+    },
+    "direccion": {
+      "calle": "C/ Teodoro Cuesta 4",
+      "ciudad": "Mieres",
+      "codigo_postal": "33600"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "A+",
+      "peso_kg": 77.5,
+      "altura_cm": 171,
+      "alergia": "Penicilina",
+      "medico_responsable": "Dr. Luis Prendes"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7785",
+      "dni": "71888999F",
+      "nombre": "Laura",
+      "apellidos": "Garcia Pando",
+      "fecha_nacimiento": "1987-01-11",
+      "sexo": "female",
+      "telefono": "+34600181920"
+    },
+    "direccion": {
+      "calle": "C/ Dorado 12",
+      "ciudad": "Sama de Langreo",
+      "codigo_postal": "33900"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O-",
+      "peso_kg": 58,
+      "altura_cm": 160,
+      "alergia": null,
+      "medico_responsable": "Dra. Ana Rubiera"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7786",
+      "dni": "10333444Q",
+      "nombre": "Pelayo",
+      "apellidos": "Suarez Llaneza",
+      "fecha_nacimiento": "1969-03-03",
+      "sexo": "male",
+      "telefono": "+34600212223"
+    },
+    "direccion": {
+      "calle": "C/ Aller 8",
+      "ciudad": "Moreda",
+      "codigo_postal": "33670"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "AB+",
+      "peso_kg": 95.3,
+      "altura_cm": 180,
+      "alergia": "Latex",
+      "medico_responsable": "Dra. Ana Rubiera"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7787",
+      "dni": "71222333N",
+      "nombre": "Noelia",
+      "apellidos": "Lada Garcia",
+      "fecha_nacimiento": "2002-08-19",
+      "sexo": "female",
+      "telefono": "+34600242526"
+    },
+    "direccion": {
+      "calle": "Av. Mejico 21",
+      "ciudad": "Mieres",
+      "codigo_postal": "33600"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "B-",
+      "peso_kg": 52.6,
+      "altura_cm": 157,
+      "alergia": "Gluten",
+      "medico_responsable": "Dr. Luis Prendes"
+    }
+  },
+  {
+    "paciente": {
+      "id": "HC-7788",
+      "dni": "09111222V",
+      "nombre": "Adolfo",
+      "apellidos": "Rionda Diaz",
+      "fecha_nacimiento": "1944-10-27",
+      "sexo": "male",
+      "telefono": "+34600272829"
+    },
+    "direccion": {
+      "calle": "C/ Pumarabule 2",
+      "ciudad": "Turon",
+      "codigo_postal": "33610"
+    },
+    "datos_clinicos": {
+      "grupo_sanguineo": "O+",
+      "peso_kg": 72,
+      "altura_cm": 168,
+      "alergia": "Metamizol",
+      "medico_responsable": "Dra. Carmen Fueyo"
+    }
+  }
+]

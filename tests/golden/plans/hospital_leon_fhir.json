@@ -1,0 +1,123 @@
+{
+  "root": "Patient",
+  "join": null,
+  "mappings": {
+    "paciente.id": {
+      "status": "mapped",
+      "sources": [
+        "Patient:identifier[mrn].value"
+      ],
+      "ops": []
+    },
+    "paciente.dni": {
+      "status": "mapped",
+      "sources": [
+        "Patient:extension[dni]"
+      ],
+      "ops": []
+    },
+    "paciente.nombre": {
+      "status": "mapped",
+      "sources": [
+        "Patient:name.given"
+      ],
+      "ops": []
+    },
+    "paciente.apellidos": {
+      "status": "mapped",
+      "sources": [
+        "Patient:name.family"
+      ],
+      "ops": []
+    },
+    "paciente.fecha_nacimiento": {
+      "status": "mapped",
+      "sources": [
+        "Patient:birthDate"
+      ],
+      "ops": []
+    },
+    "paciente.sexo": {
+      "status": "mapped",
+      "sources": [
+        "Patient:gender"
+      ],
+      "ops": []
+    },
+    "paciente.telefono": {
+      "status": "mapped",
+      "sources": [
+        "Patient:telecom[phone].value"
+      ],
+      "ops": []
+    },
+    "direccion.calle": {
+      "status": "mapped",
+      "sources": [
+        "Patient:address.line"
+      ],
+      "ops": []
+    },
+    "direccion.ciudad": {
+      "status": "mapped",
+      "sources": [
+        "Patient:address.city"
+      ],
+      "ops": []
+    },
+    "direccion.codigo_postal": {
+      "status": "no_source",
+      "sources": [],
+      "ops": []
+    },
+    "datos_clinicos.grupo_sanguineo": {
+      "status": "mapped",
+      "sources": [
+        "Patient:extension[grupo-sanguineo]"
+      ],
+      "ops": [
+        {
+          "op": "map",
+          "values": {
+            "0+": "O+",
+            "0-": "O-"
+          }
+        }
+      ]
+    },
+    "datos_clinicos.peso_kg": {
+      "status": "mapped",
+      "sources": [
+        "Patient:extension[peso]"
+      ],
+      "ops": [
+        {
+          "op": "number"
+        }
+      ]
+    },
+    "datos_clinicos.altura_cm": {
+      "status": "mapped",
+      "sources": [
+        "Patient:extension[altura]"
+      ],
+      "ops": [
+        {
+          "op": "number"
+        }
+      ]
+    },
+    "datos_clinicos.alergia": {
+      "status": "mapped",
+      "sources": [
+        "Patient:extension[alergia]"
+      ],
+      "ops": []
+    },
+    "datos_clinicos.medico_responsable": {
+      "status": "no_source",
+      "sources": [],
+      "ops": []
+    }
+  }
+}

@@ -1,0 +1,635 @@
+{
+  "driver": "huca_oviedo_hl7v23",
+  "status": "draft",
+  "created": "2026-10-19T23:36:54",
+  "contract": "cdss_paciente@v1",
+  "source": {
+    "file": "huca_oviedo_hl7v23.hl7",
+    "format": "hl7v2",
+    "root": "PID",
+    "join": "hl7_message",
+    "signature": [
+      [
+        "AL1",
+        "AL1-3.2",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-11.1",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-11.3",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-11.5",
+        "integer"
+      ],
+      [
+        "PID",
+        "PID-13",
+        "integer"
+      ],
+      [
+        "PID",
+        "PID-19",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-3.1",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-5.1",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-5.2",
+        "string"
+      ],
+      [
+        "PID",
+        "PID-7",
+        "date"
+      ],
+      [
+        "PID",
+        "PID-8",
+        "string"
+      ],
+      [
+        "PV1",
+        "PV1-7.2",
+        "string"
+      ],
+      [
+        "PV1",
+        "PV1-7.3",
+        "string"
+      ],
+      [
+        "ZPA",
+        "ZPA-2",
+        "string"
+      ],
+      [
+        "ZPA",
+        "ZPA-3",
+        "decimal"
+      ],
+      [
+        "ZPA",
+        "ZPA-4",
+        "integer"
+      ]
+    ]
+  },
+  "score_kind": "similitud por reglas, sin calibrar (ordena la revisión; no es una probabilidad)",
+  "mappings": [
+    {
+      "target": "paciente.id",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-3.1",
+          "label": "PID-3.1"
+        }
+      ],
+      "ops": [],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-3.1)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "paciente.dni",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-19",
+          "label": "PID-19"
+        }
+      ],
+      "ops": [],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-19)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "paciente.nombre",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-5.2",
+          "label": "PID-5.2"
+        }
+      ],
+      "ops": [
+        {
+          "op": "title"
+        }
+      ],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-5.2)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "paciente.apellidos",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-5.1",
+          "label": "PID-5.1"
+        }
+      ],
+      "ops": [
+        {
+          "op": "title"
+        }
+      ],
+      "score": 0.89,
+      "reasons": [
+        "posición estándar (PID-5.1)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "paciente.fecha_nacimiento",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-7",
+          "label": "PID-7"
+        }
+      ],
+      "ops": [
+        {
+          "op": "date",
+          "from": "%Y%m%d"
+        }
+      ],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-7)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "paciente.sexo",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-8",
+          "label": "PID-8"
+        }
+      ],
+      "ops": [
+        {
+          "op": "map",
+          "values": {
+            "F": "female",
+            "M": "male"
+          }
+        }
+      ],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-8)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "paciente.telefono",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-13",
+          "label": "PID-13"
+        }
+      ],
+      "ops": [],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-13)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "direccion.calle",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-11.1",
+          "label": "PID-11.1"
+        }
+      ],
+      "ops": [],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (PID-11.1)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "direccion.ciudad",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-11.3",
+          "label": "PID-11.3"
+        }
+      ],
+      "ops": [],
+      "score": 0.89,
+      "reasons": [
+        "posición estándar (PID-11.3)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "direccion.codigo_postal",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PID",
+          "path": "PID-11.5",
+          "label": "PID-11.5"
+        }
+      ],
+      "ops": [
+        {
+          "op": "pad",
+          "width": 5
+        }
+      ],
+      "score": 0.89,
+      "reasons": [
+        "posición estándar (PID-11.5)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "datos_clinicos.grupo_sanguineo",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "ZPA",
+          "path": "ZPA-2",
+          "label": "ZPA-2"
+        }
+      ],
+      "ops": [
+        {
+          "op": "map",
+          "values": {
+            "0+": "O+",
+            "0-": "O-"
+          }
+        },
+        {
+          "op": "first"
+        }
+      ],
+      "score": 0.865,
+      "reasons": [
+        "los valores son grupos sanguíneos (A+, 0-...)"
+      ],
+      "issues": [
+        "deducido solo por los valores: revisar",
+        "campo personalizado del centro (no estándar)"
+      ]
+    },
+    {
+      "target": "datos_clinicos.peso_kg",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "ZPA",
+          "path": "ZPA-3",
+          "label": "ZPA-3"
+        }
+      ],
+      "ops": [
+        {
+          "op": "number"
+        },
+        {
+          "op": "first"
+        }
+      ],
+      "score": 0.69,
+      "reasons": [
+        "números con mediana 70.4: rango típico de peso en kg"
+      ],
+      "issues": [
+        "deducido solo por los valores: revisar",
+        "campo personalizado del centro (no estándar)"
+      ]
+    },
+    {
+      "target": "datos_clinicos.altura_cm",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "ZPA",
+          "path": "ZPA-4",
+          "label": "ZPA-4"
+        }
+      ],
+      "ops": [
+        {
+          "op": "number"
+        },
+        {
+          "op": "first"
+        }
+      ],
+      "score": 0.69,
+      "reasons": [
+        "números con mediana 167: rango típico de altura en cm"
+      ],
+      "issues": [
+        "deducido solo por los valores: revisar",
+        "campo personalizado del centro (no estándar)"
+      ]
+    },
+    {
+      "target": "datos_clinicos.alergia",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "AL1",
+          "path": "AL1-3.2",
+          "label": "AL1-3.2"
+        }
+      ],
+      "ops": [
+        {
+          "op": "join",
+          "sep": "; "
+        }
+      ],
+      "score": 0.94,
+      "reasons": [
+        "posición estándar (AL1-3.2)"
+      ],
+      "issues": []
+    },
+    {
+      "target": "datos_clinicos.medico_responsable",
+      "status": "mapped",
+      "sources": [
+        {
+          "entity": "PV1",
+          "path": "PV1-7.3",
+          "label": "PV1-7.3"
+        },
+        {
+          "entity": "PV1",
+          "path": "PV1-7.2",
+          "label": "PV1-7.2"
+        }
+      ],
+      "ops": [
+        {
+          "op": "concat",
+          "sep": " "
+        },
+        {
+          "op": "title"
+        },
+        {
+          "op": "first"
+        }
+      ],
+      "score": 0.82,
+      "reasons": [
+        "nombre y apellidos del médico en campos separados: se unen"
+      ],
+      "issues": []
+    }
+  ],
+  "unmatched_sources": [
+    {
+      "entity": "MSH",
+      "path": "MSH-3",
+      "label": "MSH-3",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-4",
+      "label": "MSH-4",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-5",
+      "label": "MSH-5",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-6",
+      "label": "MSH-6",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-7",
+      "label": "MSH-7",
+      "kind": "value",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-9.1",
+      "label": "MSH-9.1",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-9.2",
+      "label": "MSH-9.2",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-10",
+      "label": "MSH-10",
+      "kind": "identifier",
+      "custom": false,
+      "looks_like": "id_tecnico"
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-11",
+      "label": "MSH-11",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "MSH",
+      "path": "MSH-12",
+      "label": "MSH-12",
+      "kind": "value",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "PID",
+      "path": "PID-1",
+      "label": "PID-1",
+      "kind": "value",
+      "custom": false,
+      "looks_like": "id_tecnico"
+    },
+    {
+      "entity": "PID",
+      "path": "PID-3.4",
+      "label": "PID-3.4",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": "id_paciente"
+    },
+    {
+      "entity": "PID",
+      "path": "PID-11.4",
+      "label": "PID-11.4",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": "provincia"
+    },
+    {
+      "entity": "PID",
+      "path": "PID-11.6",
+      "label": "PID-11.6",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": "pais"
+    },
+    {
+      "entity": "PV1",
+      "path": "PV1-1",
+      "label": "PV1-1",
+      "kind": "value",
+      "custom": false,
+      "looks_like": "id_tecnico"
+    },
+    {
+      "entity": "PV1",
+      "path": "PV1-2",
+      "label": "PV1-2",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "PV1",
+      "path": "PV1-3.1",
+      "label": "PV1-3.1",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "PV1",
+      "path": "PV1-3.2",
+      "label": "PV1-3.2",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "PV1",
+      "path": "PV1-3.3",
+      "label": "PV1-3.3",
+      "kind": "value",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "PV1",
+      "path": "PV1-7.1",
+      "label": "PV1-7.1",
+      "kind": "value",
+      "custom": false,
+      "looks_like": "medico"
+    },
+    {
+      "entity": "AL1",
+      "path": "AL1-1",
+      "label": "AL1-1",
+      "kind": "value",
+      "custom": false,
+      "looks_like": "id_tecnico"
+    },
+    {
+      "entity": "AL1",
+      "path": "AL1-2",
+      "label": "AL1-2",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": "alergia"
+    },
+    {
+      "entity": "AL1",
+      "path": "AL1-3.1",
+      "label": "AL1-3.1",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": "alergia"
+    },
+    {
+      "entity": "AL1",
+      "path": "AL1-4",
+      "label": "AL1-4",
+      "kind": "categorical",
+      "custom": false,
+      "looks_like": null
+    },
+    {
+      "entity": "ZPA",
+      "path": "ZPA-1",
+      "label": "ZPA-1",
+      "kind": "value",
+      "custom": true,
+      "looks_like": null
+    }
+  ]
+}
