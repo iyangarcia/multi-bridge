@@ -64,7 +64,9 @@ private cloud the hospital controls). Design doc §1.1.
 - The model runs on the same machine (Ollama), listening only on `127.0.0.1`, never on
   `0.0.0.0`. Remote models are **off** unless a config flag is set *and* the hospital has
   authorised them in writing (C5).
-- ❌ Comes with the local proposer (roadmap step 2).
+- ✅ `ai/ollama.py` refuses any host that isn't `127.0.0.1` / `localhost` / `::1`, even if
+  `MULTIBRIDGE_OLLAMA_URL` is changed (test: `test_ollama_must_be_local`). No remote backend exists.
+- ✅ The model is unloaded from memory when the proposal is done (`keep_alive: 0`).
 
 ### What the AI may see
 
@@ -72,11 +74,15 @@ private cloud the hospital controls). Design doc §1.1.
 mapping, in three levels:
 1. **structure:** names, descriptions, types ✅ (`as_ai(level="structure")`)
 2. **profile:** plus formats, units, null ratio, and *non-identifying* categories (`H/M`, `A+`) ✅ (`as_ai(level="profile")`)
-3. **synthetic samples:** 3–5 fake values per column, *same shape* as the real ones (a fake DNI
-   with a valid letter, `+34 6xx…`, names from a list, shifted dates) ❌
+3. **masked samples** ✅ (`aiview.py`, what the local proposer actually sends): every value keeps its
+   *shape* but loses its content: `FERNANDEZ ALVAREZ` → `XXXXXXXXX XXXXXXX`, `HC-7781` → `XX-9999`.
+   Non-sensitive measurements are sent as min / median / max only. The destination example's
+   values are masked too, since an example file could hold a real record.
+   - *Changed from the first plan:* instead of fake values (fake DNI, names from a list), samples are
+     masked. That's simpler and can't leak content; the only thing it reveals is length.
 
-Free text (diagnoses, notes) is sent as the **normalised concept** (E11), never the raw text,
-which can contain names. ❌
+Free text (diagnoses, notes) is sent as a **terminology summary** ("4 of 5 values recognised as
+ICD-10"), never the raw text, which can contain names. ✅
 
 **C5. If a remote AI (e.g. Jev) is ever used.** ❌ Jev's terms are unknown (`docs/JEV.md`).
 - Only levels 1–2, never values, even pseudonymised ones.
@@ -87,26 +93,36 @@ which can contain names. ❌
   - EU data location, or a valid transfer mechanism for the US (EU–US Data Privacy Framework or Standard Contractual Clauses; art. 44–49)
   - an entry in the DPIA
 
-**C6. Default deny for unknown columns.** 🟡
-- Values reach the AI only if the column is *positively* classified as a non-identifying category.
-- A custom field, unnamed column or free-text column that wasn't recognised gets no values sent,
-  not even at level 3.
-- Today `as_ai()` withholds columns *detected* as sensitive; it should flip to withholding
-  everything not *cleared*.
+**C6. Default deny for unknown columns.** ✅ for the proposer (`aiview.cleared()`)
+- Real values reach the model only if the column is *positively* cleared: a non-sensitive category
+  list of at most 12 short values (`H/M`, `A+/0-`, `I/E`). Everything else is masked or summarised.
+- Tests: `test_prompt_never_contains_values_of_uncleared_columns` and
+  `test_sensitive_columns_are_never_cleared`, over all six example files.
+- 🟡 The older `profile.as_ai()` (used by `multibridge inspect --as-ai`) still works the other way
+  round, withholding only *detected* sensitive columns. It sends nothing anywhere, but should be
+  switched to `aiview` for consistency.
 
-**C7. Instructions hidden in data (prompt injection).** ❌ Step 2.
-- Values are never put into the prompt as instructions.
-- The model's answer is constrained to a schema (existing fields + allowed transforms only).
-- Every result goes through human review (C8).
+**C7. Instructions hidden in data (prompt injection).** ✅ / 🟡
+- ✅ Free-text values never reach the prompt (they are masked), so text written in a hospital
+  file can't act as an instruction. Only cleared category values and column names/descriptions do.
+- ✅ The reply is constrained by a JSON schema whose enums are the real targets and columns, and
+  then checked again (`proposer._fields_from_answer`): invented columns are dropped, a column can't
+  feed two fields, required fields can't be "no_data", translations must land on allowed values.
+  Anything dubious becomes *pending*.
+- ✅ Every result goes through human review (C8).
+- 🟡 Column names and descriptions do come from the file (a Z-segment description, an Excel
+  comment). They could carry injected text. The schema and review limit what that can achieve.
 
 ### Decisions and traceability
 
-**C8. A human approves every mapping before it runs.** ✅ `driver.py`
+**C8. A human approves every mapping before it runs.** ✅ `recipe.py`
 - Approval records who, when, and a hash of the exact plan. Any change invalidates it.
 
-**C9. Traceability: what the AI proposed vs what the human changed** (design doc §5 "Trazabilidad"; AI Act transparency). ❌
-- Recipes store, per field: the proposal (model name + version, or "rules"), the final decision,
-  and who changed it.
+**C9. Traceability: what the AI proposed vs what the human changed** (design doc §5 "Trazabilidad"; AI Act transparency). ✅ / 🟡
+- ✅ Each recipe field keeps `proposed_by` (`rules`, `qwen3:8b`, or `qwen3:8b (think)` for the
+  second pass), a frozen copy of the original `proposal`, and `changed_by` when the approver's
+  decision differs from it.
+- 🟡 The model *version* (Ollama digest) isn't recorded yet, only its name (see C15).
 
 **C10. No silent clinical changes.** ✅ / ❌
 - ✅ Ambiguous or unknown terms (`IRA`, `DiabA`) are never auto-resolved (`terms/`).
@@ -122,8 +138,9 @@ which can contain names. ❌
   but never paste that output into tickets or chats. ❌ Add a `--no-values` flag.
 
 **C12. Recipes contain no personal data.**
-- Drivers hold structure and harmless category translations (`0+ → O+`), so they can be shared
-  with other hospitals. ❌ Add a test that scans saved drivers for values of sensitive fields.
+- Recipes hold structure, column descriptions and harmless category translations (`0+ → O+`), so
+  they can be shared with other hospitals. Approved recipes are also fed back to the model as
+  worked examples. ❌ Add a test that scans saved recipes for values of sensitive fields.
 
 **C13. Multi Bridge is a pass-through, not a store.** ❌
 - It must not keep copies of clinical data beyond what one delivery needs. Retention of the
@@ -140,11 +157,12 @@ which can contain names. ❌
 - Backups under the hospital's policy.
 - Dependencies pinned and scanned.
 
-**C15. Model provenance.** ❌
+**C15. Model provenance.** 🟡
 - Model weights come only from official sources, with a licence that allows this use. Check
   each model's licence: most Qwen3 sizes are Apache 2.0, but some older Qwen sizes use a custom
-  licence.
-- The model name and version are recorded in each recipe (C9).
+  licence. In use: `qwen3:8b` and `qwen3:30b` from the Ollama library.
+- ✅ The model name is recorded per field (C9). ❌ Record the exact version (the Ollama model
+  digest) too, so a recipe says precisely which weights proposed it.
 
 ### Paperwork the hospital will ask for
 
