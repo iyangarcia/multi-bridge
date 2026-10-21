@@ -192,10 +192,11 @@ def evidence(f: Field, values) -> Evidence:
 
 
 def concept_for_name(path: str) -> str | None:
-    text = words(path.rsplit(".", 1)[-1], path)
-    for key, c in CONCEPTS.items():
-        if any(f" {h} " in text for h in c.hints):
-            return key
+    """Meaning of a target field from its name. The leaf decides ("direccion.ciudad" is a city, not a street)."""
+    for text in (words(path.rsplit(".", 1)[-1]), words(path.rsplit(".", 1)[-1], path)):
+        for key, c in CONCEPTS.items():
+            if any(f" {h} " in text for h in c.hints):
+                return key
     return None
 
 

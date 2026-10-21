@@ -4,10 +4,11 @@
     multibridge inspect examples/hospital_c_messy.xlsx --as-ai
     multibridge terms "DM2 mal controlada" "sospecha de NAC" "IRA" "DiabA"
 
-    multibridge map examples/huca_oviedo_hl7v23.hl7 --contract contracts/cdss_paciente.v1.json
-    multibridge approve drivers/drafts/huca_oviedo_hl7v23.json --contract contracts/cdss_paciente.v1.json --by "Nombre"
-    multibridge map examples/huca_oviedo_hl7v23.hl7 --contract contracts/cdss_paciente.v1.json   # now reuses the driver
-    multibridge contract-from-example examples/destino_expected.json
+    multibridge expected                                         # what the destination wants (from its example)
+    multibridge map examples/huca_oviedo_hl7v23.hl7              # local Qwen proposes a recipe (or reuse an approved one)
+    multibridge map examples/huca_oviedo_hl7v23.hl7 --model rules   # offline rules instead of the model
+    multibridge approve recipes/drafts/huca_oviedo_hl7v23.json --by "Nombre"
+    multibridge map examples/huca_oviedo_hl7v23.hl7              # same structure: applied without proposing again
 """
 
 from __future__ import annotations
@@ -17,14 +18,17 @@ import json
 import sys
 from pathlib import Path
 
-from . import driver as drivers
-from .contract import Contract, from_example
+from . import recipe as recipes
 from .engine import run
-from .matcher import propose
+from .expected import Expected
+from .ai.ollama import OllamaUnavailable
 from .parsers import load
+from .proposer import propose
 from .profile import as_ai
+from .records import to_rows
 from .terms import get_normalizer
 
+DEFAULT_EXPECTED = "expected/cdss_paciente.example.json"
 FORMATS = {"csv": "CSV", "excel": "Excel", "fhir": "HL7 FHIR", "json": "JSON", "hl7v2": "HL7 v2"}
 
 
@@ -103,93 +107,116 @@ def cmd_terms(args) -> int:
     return 0
 
 
-def describe_op(op: dict) -> str:
-    k = op["op"]
+def describe(t: dict) -> str:
+    k = t["op"]
     if k == "date":
-        return f"fecha {op['from']}→ISO"
-    if k == "map":
-        return "traducir " + ", ".join(f"{a}→{b}" for a, b in list(op["values"].items())[:3])
+        return f"fecha {t['from']}→ISO"
+    if k == "translate":
+        return "traducir " + ", ".join(f"{a}→{b}" for a, b in list(t["values"].items())[:3])
     if k == "number":
-        return "número" + (" (coma decimal)" if op.get("decimal") == "," else "")
+        return "número" + (" (coma decimal)" if t.get("decimal") == "," else "")
     if k == "phone":
-        return f"teléfono +{op['country']}"
+        return f"teléfono +{t['country']}"
     if k == "pad":
-        return f"rellenar a {op['width']} cifras"
-    if k == "concat":
-        return "unir campos"
-    if k == "join":
-        return "unir varios valores"
-    if k == "first":
-        return "primer valor"
-    if k == "title":
-        return "Mayúscula Inicial"
+        return f"rellenar a {t['width']} cifras"
     if k == "scale":
-        return f"×{op['factor']}"
-    return k
+        return f"×{t['factor']}"
+    if k == "split":
+        return f"separar, parte {t.get('index', 0)}"
+    return {"join_columns": "unir columnas", "join_values": "unir varios valores", "first": "primer valor",
+            "title": "Mayúscula Inicial"}.get(k, k)
 
 
-def print_plan(d: dict) -> None:
-    src = d["source"]
-    join = f", enlazado por {src['join']}" if src["join"] else ""
-    print(f"Propuesta para {src['file']} ({FORMATS.get(src['format'], src['format'])}) → {d['contract']}")
-    print(f"Entidad raíz: {src['root']}{join}.  Puntuación: {d['score_kind']}\n")
-    marks = {"mapped": "✓", "no_source": "–", "pending": "!"}
-    for m in d["mappings"]:
-        sources = " + ".join(s["path"] for s in m["sources"]) or "(sin origen)"
-        score = f"{m['score']:.2f}" if m["score"] is not None else "    "
-        ops = ", ".join(describe_op(o) for o in m["ops"])
-        print(f" {marks[m['status']]} {m['target']:34} {score}  {_short(sources, 30):30} {ops}")
-        for issue in m["issues"]:
-            print(f"   {'':34}       ↳ {issue}")
-        if m["status"] != "mapped" and m.get("candidates"):
-            cands = ", ".join(f"{c['path']} ({c['score']:.2f})" for c in m["candidates"])
-            print(f"   {'':34}       candidatos: {cands}")
-    extra = [u for u in d["unmatched_sources"] if u["looks_like"] or u["custom"]]
-    if d["unmatched_sources"]:
-        print(f"\nCampos de origen sin usar: {len(d['unmatched_sources'])}"
-              + (f" (a revisar: {', '.join(u['path'] + (' ~' + u['looks_like'] if u['looks_like'] else '') for u in extra)})"
-                 if extra else ""))
+def _light(confidence) -> str:
+    if confidence is None:
+        return "  "
+    return "🟢" if confidence >= 0.85 else "🟡" if confidence >= 0.7 else "🔴"
+
+
+def print_recipe(r: dict) -> None:
+    src = r["source"]
+    print(f"Propuesta para {src['file']} ({FORMATS.get(src['format'], src['format'])}) → {r['expected']}")
+    print(f"Confianza: {r['confidence_kind']}\n")
+    marks = {"mapped": "✓", "no_data": "–", "pending": "!"}
+    for target, f in r["fields"].items():
+        conf = f"{f['confidence']:.2f}" if f["confidence"] is not None else "    "
+        cols = " + ".join(f["from"]) or "(sin dato)"
+        ops = ", ".join(describe(t) for t in f["transforms"])
+        print(f" {marks[f['status']]} {target:34} {_light(f['confidence'])} {conf}  {_short(cols, 28):28} {ops}")
+        for issue in f.get("issues", []):
+            print(f"   {'':34}          ↳ {issue}")
+        if f["status"] != "mapped" and f.get("candidates"):
+            cands = ", ".join(f"{c['column']} ({c['confidence']:.2f})" for c in f["candidates"])
+            print(f"   {'':34}          candidatos: {cands}")
+    if r["unmatched"]:
+        print(f"\nColumnas de origen sin usar ({len(r['unmatched'])}): {_short(', '.join(r['unmatched']), 200)}")
 
 
 def _write_output(result, file: str, out_dir: str) -> Path:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     stem = Path(file).stem
-    (out / f"{stem}.json").write_text(json.dumps(result.records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (out / f"{stem}.json").write_text(json.dumps(result.records, ensure_ascii=False, indent=2) + "\n",
+                                      encoding="utf-8")
     (out / f"{stem}.report.json").write_text(json.dumps(result.report, ensure_ascii=False, indent=2) + "\n",
                                              encoding="utf-8")
     return out / f"{stem}.json"
 
 
-def _print_run(result, path: Path) -> None:
+def _print_run(result, path: Path) -> int:
     r = result.report
-    print(f"{r['accepted']}/{r['processed']} registros válidos → {path}")
+    print(f"{r['accepted']}/{r['rows']} registros válidos → {path}")
     if r["rejected"]:
-        print(f"{r['rejected']} registros separados por no cumplir el contrato:")
+        print(f"{r['rejected']} registros apartados por no cumplir el destino:")
         for e in r["errors"][:10]:
-            print(f"  registro {e['record']}: {e['target']} — {e['reason']}")
+            print(f"  fila {e['row']}: {e['field']} — {e['reason']}")
     if r["empty_fields"]:
-        print("Campos vacíos: " + ", ".join(f"{k} ({v})" for k, v in r["empty_fields"].items()))
+        print("Campos sin dato: " + ", ".join(f"{k} ({v})" for k, v in r["empty_fields"].items()))
+    return 0 if not r["rejected"] else 2
+
+
+def cmd_expected(args) -> int:
+    e = Expected.load(args.expected)
+    print(f"{e.id}  ({len(e.targets)} campos)")
+    for t in e.targets:
+        extra = [x for x in ("obligatorio" if t.required else "",
+                             f"valores: {', '.join(t.enum)}" if t.enum else "",
+                             f"unidad {t.unit}" if t.unit else "",
+                             f"varios: {t.multiple}" if t.multiple else "") if x]
+        print(f"  {t.path:34} {t.type:8} {str(t.concept or '?'):18} {'; '.join(extra)}")
+    return 0
 
 
 def cmd_map(args) -> int:
-    contract = Contract.load(args.contract)
-    ds = load(args.file)
-    found = drivers.find_compatible(args.drivers, ds, contract)
+    expected = Expected.load(args.expected)
+    rows = to_rows(load(args.file))
+    found = recipes.find(args.recipes, rows, expected)
     if found:
-        path, drv = found[0]
-        a = drv["approval"]
-        print(f"Ya conozco este formato: driver '{drv['driver']}' ({path}), aprobado por {a['by']} el {a['at']}.")
-        print("Se aplica sin volver a proponer el mapeo. El motor valida cada registro.\n")
-        result = run(ds, drv, contract)
-        _print_run(result, _write_output(result, args.file, args.out))
-        return 0 if not result.rejected else 2
-    plan = propose(ds, contract, name=Path(args.file).stem)
-    print_plan(plan)
-    draft = drivers.save(plan, Path(args.drivers) / "drafts" / f"{plan['driver']}.json")
-    blockers = drivers.problems(plan, contract)
-    print(f"\nBorrador guardado en {draft}. Revísalo (puedes editar el JSON) y apruébalo:")
-    print(f'  multibridge approve "{draft}" --contract "{args.contract}" --by "Tu nombre"')
+        path, r = found[0]
+        a = r["approval"]
+        print(f"Ya conozco este formato: receta '{r['recipe']}' ({path}), aprobada por {a['by']} el {a['at']}.")
+        print("Se aplica sin volver a proponer. El motor valida cada registro.\n")
+        result = run(rows, r, expected)
+        return _print_run(result, _write_output(result, args.file, args.out))
+    if args.model != "rules":
+        print(f"Pidiendo propuesta al modelo local ({args.model})…")
+    try:
+        draft = propose(rows, expected, model=args.model, name=Path(args.file).stem, recipes_dir=args.recipes)
+    except OllamaUnavailable as e:
+        print(f"No se pudo usar el modelo {args.model}: {e}")
+        print("Arranca Ollama o usa --model rules.")
+        return 1
+    info = draft.get("proposer", {})
+    if info.get("fallback_reason"):
+        print(f"Modelo local no disponible ({info['fallback_reason']}): propuesta por reglas.\n")
+    elif info.get("seconds") is not None:
+        again = f", segunda pasada con razonamiento para {len(info['second_pass'])} campo(s)" if info["second_pass"] else ""
+        print(f"Propuesta de {info['model']} en {info['seconds']} s{again}.\n")
+    print_recipe(draft)
+    path = recipes.save(draft, Path(args.recipes) / "drafts" / f"{draft['recipe']}.json")
+    print(f"\nBorrador guardado en {path}. Revísalo (puedes editar el JSON) y apruébalo:")
+    print(f'  multibridge approve "{path}" --by "Tu nombre"')
+    blockers = recipes.problems(draft, expected)
     if blockers:
         print("\nAntes de aprobar hay que resolver:")
         for b in blockers:
@@ -198,48 +225,43 @@ def cmd_map(args) -> int:
 
 
 def cmd_approve(args) -> int:
-    contract = Contract.load(args.contract)
+    expected = Expected.load(args.expected)
     draft_path = Path(args.draft)
     try:
-        approved = drivers.approve(drivers.load(draft_path), contract, args.by)
-    except drivers.ApprovalError as e:
+        approved = recipes.approve(recipes.load(draft_path), expected, args.by)
+    except recipes.ApprovalError as e:
         print("No se puede aprobar:")
         for p in e.problems:
             print(f"  ! {p}")
         return 1
-    target_dir = Path(args.drivers) if args.drivers else draft_path.parent.parent
-    path = drivers.save(approved, target_dir / f"{approved['driver']}.json")
+    folder = Path(args.recipes) if args.recipes else draft_path.parent.parent
+    path = recipes.save(approved, folder / f"{approved['recipe']}.json")
     if draft_path.resolve() != path.resolve():
         draft_path.unlink()
-    print(f"Aprobado por {approved['approval']['by']} → {path}")
-    print(f"Huella del plan: {approved['approval']['plan_sha256'][:16]}… (si se edita, hay que volver a aprobarlo)")
+    changed = [t for t, f in approved["fields"].items() if f.get("changed_by")]
+    print(f"Aprobada por {approved['approval']['by']} → {path}")
+    if changed:
+        print(f"Campos cambiados respecto a la propuesta: {', '.join(changed)}")
+    print(f"Huella: {approved['approval']['sha256'][:16]}… (si se edita, hay que volver a aprobarla)")
     return 0
 
 
 def cmd_run(args) -> int:
-    contract = Contract.load(args.contract)
-    ds = load(args.file)
-    drv = drivers.load(args.driver)
-    why = drivers.compatible(drv, ds, contract)
+    expected = Expected.load(args.expected)
+    rows = to_rows(load(args.file))
+    r = recipes.load(args.recipe)
+    why = recipes.compatible(r, rows, expected)
     if why:
-        print("El driver no es compatible con este archivo:")
+        print("La receta no encaja con este archivo:")
         for w in why:
             print(f"  ! {w}")
         return 1
     try:
-        result = run(ds, drv, contract)
-    except drivers.ApprovalError as e:
+        result = run(rows, r, expected)
+    except recipes.ApprovalError as e:
         print(f"No se ejecuta: {e}")
         return 1
-    _print_run(result, _write_output(result, args.file, args.out))
-    return 0 if not result.rejected else 2
-
-
-def cmd_contract(args) -> int:
-    example = json.loads(Path(args.example).read_text(encoding="utf-8"))
-    c = from_example(example, name=args.name)
-    print(json.dumps(c.to_dict(), ensure_ascii=False, indent=2))
-    return 0
+    return _print_run(result, _write_output(result, args.file, args.out))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -264,31 +286,32 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--json", action="store_true")
     t.set_defaults(func=cmd_terms)
 
-    m = sub.add_parser("map", help="reuse an approved driver, or propose a new mapping plan")
+    def with_expected(sp):
+        sp.add_argument("--expected", default=DEFAULT_EXPECTED, help="example of the destination output")
+        return sp
+
+    e = with_expected(sub.add_parser("expected", help="show the destination fields read from its example"))
+    e.set_defaults(func=cmd_expected)
+
+    m = with_expected(sub.add_parser("map", help="reuse an approved recipe, or propose a new one"))
     m.add_argument("file")
-    m.add_argument("--contract", required=True)
-    m.add_argument("--drivers", default="drivers", help="folder with approved drivers (drafts go in drafts/)")
+    m.add_argument("--recipes", default="recipes", help="folder of approved recipes (drafts go in drafts/)")
     m.add_argument("--out", default="out")
+    m.add_argument("--model", default="auto",
+                   help='"auto" (local qwen3:8b, rules if Ollama is off), "rules", or a local model like qwen3:30b')
     m.set_defaults(func=cmd_map)
 
-    a = sub.add_parser("approve", help="approve a draft driver (a person signs it)")
+    a = with_expected(sub.add_parser("approve", help="approve a draft recipe (a person signs it)"))
     a.add_argument("draft")
-    a.add_argument("--contract", required=True)
     a.add_argument("--by", required=True, help="who approves")
-    a.add_argument("--drivers", help="where approved drivers go (default: parent of drafts/)")
+    a.add_argument("--recipes", help="where approved recipes go (default: parent of drafts/)")
     a.set_defaults(func=cmd_approve)
 
-    r = sub.add_parser("run", help="run a specific approved driver")
+    r = with_expected(sub.add_parser("run", help="run a specific approved recipe"))
     r.add_argument("file")
-    r.add_argument("--driver", required=True)
-    r.add_argument("--contract", required=True)
+    r.add_argument("--recipe", required=True)
     r.add_argument("--out", default="out")
     r.set_defaults(func=cmd_run)
-
-    c = sub.add_parser("contract-from-example", help="draft an EXPECTED contract from an example output JSON")
-    c.add_argument("example")
-    c.add_argument("--name", default="contrato")
-    c.set_defaults(func=cmd_contract)
 
     args = p.parse_args(argv)
     return args.func(args)
