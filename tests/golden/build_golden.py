@@ -1,4 +1,4 @@
-"""Regenerate the golden files from the current matcher + engine.
+"""Regenerate the golden files from the current pipeline.
 
     python tests/golden/build_golden.py
 
@@ -13,35 +13,31 @@ import json
 from pathlib import Path
 
 from multibridge import load
-from multibridge.contract import Contract
-from multibridge.driver import approve
 from multibridge.engine import run
+from multibridge.expected import Expected
 from multibridge.matcher import propose
+from multibridge.recipe import approve
+from multibridge.records import to_rows
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 HOSPITALS = ["hospital_alvarez_buylla.csv", "hospital_leon_fhir.json", "huca_oviedo_hl7v23.hl7"]
 
 
-def reduced_plan(driver: dict) -> dict:
-    """The decisions a reviewer cares about, without scores, timestamps or explanations."""
-    return {
-        "root": driver["source"]["root"],
-        "join": driver["source"]["join"],
-        "mappings": {m["target"]: {"status": m["status"],
-                                   "sources": [f"{s['entity']}:{s['path']}" for s in m["sources"]],
-                                   "ops": m["ops"]} for m in driver["mappings"]},
-    }
+def reduced(recipe: dict) -> dict:
+    """The decisions a reviewer checks: no confidences, timestamps or explanations."""
+    return {t: {"status": f["status"], "from": f["from"], "transforms": f["transforms"]}
+            for t, f in recipe["fields"].items()}
 
 
 def main() -> None:
-    contract = Contract.load(ROOT / "contracts" / "cdss_paciente.v1.json")
+    expected = Expected.load(ROOT / "expected" / "cdss_paciente.example.json")
     for name in HOSPITALS:
-        ds = load(ROOT / "examples" / name)
-        plan = propose(ds, contract)
-        result = run(ds, approve(plan, contract, by="golden"), contract)
+        rows = to_rows(load(ROOT / "examples" / name))
+        draft = propose(rows, expected)
+        result = run(rows, approve(draft, expected, by="golden"), expected)
         stem = Path(name).stem
-        for folder, content in (("plans", reduced_plan(plan)), ("output", result.records)):
+        for folder, content in (("plans", reduced(draft)), ("output", result.records)):
             p = HERE / folder / f"{stem}.json"
             p.parent.mkdir(exist_ok=True)
             p.write_text(json.dumps(content, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
