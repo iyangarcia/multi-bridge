@@ -1,179 +1,158 @@
 {
-  "root": "PID",
-  "join": "hl7_message",
-  "mappings": {
-    "paciente.id": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-3.1"
-      ],
-      "ops": []
-    },
-    "paciente.dni": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-19"
-      ],
-      "ops": []
-    },
-    "paciente.nombre": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-5.2"
-      ],
-      "ops": [
-        {
-          "op": "title"
+  "paciente.id": {
+    "status": "mapped",
+    "from": [
+      "PID-3.1"
+    ],
+    "transforms": []
+  },
+  "paciente.dni": {
+    "status": "mapped",
+    "from": [
+      "PID-19"
+    ],
+    "transforms": []
+  },
+  "paciente.nombre": {
+    "status": "mapped",
+    "from": [
+      "PID-5.2"
+    ],
+    "transforms": [
+      {
+        "op": "title"
+      }
+    ]
+  },
+  "paciente.apellidos": {
+    "status": "mapped",
+    "from": [
+      "PID-5.1"
+    ],
+    "transforms": [
+      {
+        "op": "title"
+      }
+    ]
+  },
+  "paciente.fecha_nacimiento": {
+    "status": "mapped",
+    "from": [
+      "PID-7"
+    ],
+    "transforms": [
+      {
+        "op": "date",
+        "from": "%Y%m%d"
+      }
+    ]
+  },
+  "paciente.sexo": {
+    "status": "mapped",
+    "from": [
+      "PID-8"
+    ],
+    "transforms": [
+      {
+        "op": "translate",
+        "values": {
+          "F": "female",
+          "M": "male"
         }
-      ]
-    },
-    "paciente.apellidos": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-5.1"
-      ],
-      "ops": [
-        {
-          "op": "title"
+      }
+    ]
+  },
+  "paciente.telefono": {
+    "status": "mapped",
+    "from": [
+      "PID-13"
+    ],
+    "transforms": []
+  },
+  "direccion.calle": {
+    "status": "mapped",
+    "from": [
+      "PID-11.1"
+    ],
+    "transforms": []
+  },
+  "direccion.ciudad": {
+    "status": "mapped",
+    "from": [
+      "PID-11.3"
+    ],
+    "transforms": []
+  },
+  "direccion.codigo_postal": {
+    "status": "mapped",
+    "from": [
+      "PID-11.5"
+    ],
+    "transforms": [
+      {
+        "op": "pad",
+        "width": 5
+      }
+    ]
+  },
+  "datos_clinicos.grupo_sanguineo": {
+    "status": "mapped",
+    "from": [
+      "ZPA-2"
+    ],
+    "transforms": [
+      {
+        "op": "translate",
+        "values": {
+          "0+": "O+",
+          "0-": "O-"
         }
-      ]
-    },
-    "paciente.fecha_nacimiento": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-7"
-      ],
-      "ops": [
-        {
-          "op": "date",
-          "from": "%Y%m%d"
-        }
-      ]
-    },
-    "paciente.sexo": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-8"
-      ],
-      "ops": [
-        {
-          "op": "map",
-          "values": {
-            "F": "female",
-            "M": "male"
-          }
-        }
-      ]
-    },
-    "paciente.telefono": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-13"
-      ],
-      "ops": []
-    },
-    "direccion.calle": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-11.1"
-      ],
-      "ops": []
-    },
-    "direccion.ciudad": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-11.3"
-      ],
-      "ops": []
-    },
-    "direccion.codigo_postal": {
-      "status": "mapped",
-      "sources": [
-        "PID:PID-11.5"
-      ],
-      "ops": [
-        {
-          "op": "pad",
-          "width": 5
-        }
-      ]
-    },
-    "datos_clinicos.grupo_sanguineo": {
-      "status": "mapped",
-      "sources": [
-        "ZPA:ZPA-2"
-      ],
-      "ops": [
-        {
-          "op": "map",
-          "values": {
-            "0+": "O+",
-            "0-": "O-"
-          }
-        },
-        {
-          "op": "first"
-        }
-      ]
-    },
-    "datos_clinicos.peso_kg": {
-      "status": "mapped",
-      "sources": [
-        "ZPA:ZPA-3"
-      ],
-      "ops": [
-        {
-          "op": "number"
-        },
-        {
-          "op": "first"
-        }
-      ]
-    },
-    "datos_clinicos.altura_cm": {
-      "status": "mapped",
-      "sources": [
-        "ZPA:ZPA-4"
-      ],
-      "ops": [
-        {
-          "op": "number"
-        },
-        {
-          "op": "first"
-        }
-      ]
-    },
-    "datos_clinicos.alergia": {
-      "status": "mapped",
-      "sources": [
-        "AL1:AL1-3.2"
-      ],
-      "ops": [
-        {
-          "op": "join",
-          "sep": "; "
-        }
-      ]
-    },
-    "datos_clinicos.medico_responsable": {
-      "status": "mapped",
-      "sources": [
-        "PV1:PV1-7.3",
-        "PV1:PV1-7.2"
-      ],
-      "ops": [
-        {
-          "op": "concat",
-          "sep": " "
-        },
-        {
-          "op": "title"
-        },
-        {
-          "op": "first"
-        }
-      ]
-    }
+      }
+    ]
+  },
+  "datos_clinicos.peso_kg": {
+    "status": "mapped",
+    "from": [
+      "ZPA-3"
+    ],
+    "transforms": [
+      {
+        "op": "number"
+      }
+    ]
+  },
+  "datos_clinicos.altura_cm": {
+    "status": "mapped",
+    "from": [
+      "ZPA-4"
+    ],
+    "transforms": [
+      {
+        "op": "number"
+      }
+    ]
+  },
+  "datos_clinicos.alergia": {
+    "status": "mapped",
+    "from": [
+      "AL1-3.2"
+    ],
+    "transforms": []
+  },
+  "datos_clinicos.medico_responsable": {
+    "status": "mapped",
+    "from": [
+      "PV1-7.3",
+      "PV1-7.2"
+    ],
+    "transforms": [
+      {
+        "op": "join_columns",
+        "sep": " "
+      },
+      {
+        "op": "title"
+      }
+    ]
   }
 }

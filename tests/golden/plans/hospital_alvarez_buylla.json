@@ -1,151 +1,147 @@
 {
-  "root": "hospital_alvarez_buylla",
-  "join": null,
-  "mappings": {
-    "paciente.id": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Nº Historia"
-      ],
-      "ops": []
-    },
-    "paciente.dni": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:DNI"
-      ],
-      "ops": []
-    },
-    "paciente.nombre": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Nombre"
-      ],
-      "ops": []
-    },
-    "paciente.apellidos": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Apellidos"
-      ],
-      "ops": []
-    },
-    "paciente.fecha_nacimiento": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:F. Nacimiento"
-      ],
-      "ops": [
-        {
-          "op": "date",
-          "from": "%d/%m/%Y"
+  "paciente.id": {
+    "status": "mapped",
+    "from": [
+      "Nº Historia"
+    ],
+    "transforms": []
+  },
+  "paciente.dni": {
+    "status": "mapped",
+    "from": [
+      "DNI"
+    ],
+    "transforms": []
+  },
+  "paciente.nombre": {
+    "status": "mapped",
+    "from": [
+      "Nombre"
+    ],
+    "transforms": []
+  },
+  "paciente.apellidos": {
+    "status": "mapped",
+    "from": [
+      "Apellidos"
+    ],
+    "transforms": []
+  },
+  "paciente.fecha_nacimiento": {
+    "status": "mapped",
+    "from": [
+      "F. Nacimiento"
+    ],
+    "transforms": [
+      {
+        "op": "date",
+        "from": "%d/%m/%Y"
+      }
+    ]
+  },
+  "paciente.sexo": {
+    "status": "mapped",
+    "from": [
+      "Sexo"
+    ],
+    "transforms": [
+      {
+        "op": "translate",
+        "values": {
+          "H": "male",
+          "M": "female"
         }
-      ]
-    },
-    "paciente.sexo": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Sexo"
-      ],
-      "ops": [
-        {
-          "op": "map",
-          "values": {
-            "H": "male",
-            "M": "female"
-          }
+      }
+    ]
+  },
+  "paciente.telefono": {
+    "status": "mapped",
+    "from": [
+      "Teléfono móvil"
+    ],
+    "transforms": [
+      {
+        "op": "phone",
+        "country": "34"
+      }
+    ]
+  },
+  "direccion.calle": {
+    "status": "mapped",
+    "from": [
+      "Domicilio"
+    ],
+    "transforms": []
+  },
+  "direccion.ciudad": {
+    "status": "mapped",
+    "from": [
+      "Localidad"
+    ],
+    "transforms": []
+  },
+  "direccion.codigo_postal": {
+    "status": "mapped",
+    "from": [
+      "CP"
+    ],
+    "transforms": [
+      {
+        "op": "pad",
+        "width": 5
+      }
+    ]
+  },
+  "datos_clinicos.grupo_sanguineo": {
+    "status": "mapped",
+    "from": [
+      "Grupo sanguíneo"
+    ],
+    "transforms": [
+      {
+        "op": "translate",
+        "values": {
+          "0+": "O+",
+          "0-": "O-"
         }
-      ]
-    },
-    "paciente.telefono": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Teléfono móvil"
-      ],
-      "ops": [
-        {
-          "op": "phone",
-          "country": "34"
-        }
-      ]
-    },
-    "direccion.calle": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Domicilio"
-      ],
-      "ops": []
-    },
-    "direccion.ciudad": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Localidad"
-      ],
-      "ops": []
-    },
-    "direccion.codigo_postal": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:CP"
-      ],
-      "ops": [
-        {
-          "op": "pad",
-          "width": 5
-        }
-      ]
-    },
-    "datos_clinicos.grupo_sanguineo": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Grupo sanguíneo"
-      ],
-      "ops": [
-        {
-          "op": "map",
-          "values": {
-            "0+": "O+",
-            "0-": "O-"
-          }
-        }
-      ]
-    },
-    "datos_clinicos.peso_kg": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Peso (kg)"
-      ],
-      "ops": [
-        {
-          "op": "number",
-          "decimal": ","
-        }
-      ]
-    },
-    "datos_clinicos.altura_cm": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Talla (cm)"
-      ],
-      "ops": [
-        {
-          "op": "number"
-        }
-      ]
-    },
-    "datos_clinicos.alergia": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Alergias"
-      ],
-      "ops": []
-    },
-    "datos_clinicos.medico_responsable": {
-      "status": "mapped",
-      "sources": [
-        "hospital_alvarez_buylla:Médico de cabecera"
-      ],
-      "ops": []
-    }
+      }
+    ]
+  },
+  "datos_clinicos.peso_kg": {
+    "status": "mapped",
+    "from": [
+      "Peso (kg)"
+    ],
+    "transforms": [
+      {
+        "op": "number",
+        "decimal": ","
+      }
+    ]
+  },
+  "datos_clinicos.altura_cm": {
+    "status": "mapped",
+    "from": [
+      "Talla (cm)"
+    ],
+    "transforms": [
+      {
+        "op": "number"
+      }
+    ]
+  },
+  "datos_clinicos.alergia": {
+    "status": "mapped",
+    "from": [
+      "Alergias"
+    ],
+    "transforms": []
+  },
+  "datos_clinicos.medico_responsable": {
+    "status": "mapped",
+    "from": [
+      "Médico de cabecera"
+    ],
+    "transforms": []
   }
 }

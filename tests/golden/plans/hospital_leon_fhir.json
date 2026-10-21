@@ -1,123 +1,119 @@
 {
-  "root": "Patient",
-  "join": null,
-  "mappings": {
-    "paciente.id": {
-      "status": "mapped",
-      "sources": [
-        "Patient:identifier[mrn].value"
-      ],
-      "ops": []
-    },
-    "paciente.dni": {
-      "status": "mapped",
-      "sources": [
-        "Patient:extension[dni]"
-      ],
-      "ops": []
-    },
-    "paciente.nombre": {
-      "status": "mapped",
-      "sources": [
-        "Patient:name.given"
-      ],
-      "ops": []
-    },
-    "paciente.apellidos": {
-      "status": "mapped",
-      "sources": [
-        "Patient:name.family"
-      ],
-      "ops": []
-    },
-    "paciente.fecha_nacimiento": {
-      "status": "mapped",
-      "sources": [
-        "Patient:birthDate"
-      ],
-      "ops": []
-    },
-    "paciente.sexo": {
-      "status": "mapped",
-      "sources": [
-        "Patient:gender"
-      ],
-      "ops": []
-    },
-    "paciente.telefono": {
-      "status": "mapped",
-      "sources": [
-        "Patient:telecom[phone].value"
-      ],
-      "ops": []
-    },
-    "direccion.calle": {
-      "status": "mapped",
-      "sources": [
-        "Patient:address.line"
-      ],
-      "ops": []
-    },
-    "direccion.ciudad": {
-      "status": "mapped",
-      "sources": [
-        "Patient:address.city"
-      ],
-      "ops": []
-    },
-    "direccion.codigo_postal": {
-      "status": "no_source",
-      "sources": [],
-      "ops": []
-    },
-    "datos_clinicos.grupo_sanguineo": {
-      "status": "mapped",
-      "sources": [
-        "Patient:extension[grupo-sanguineo]"
-      ],
-      "ops": [
-        {
-          "op": "map",
-          "values": {
-            "0+": "O+",
-            "0-": "O-"
-          }
+  "paciente.id": {
+    "status": "mapped",
+    "from": [
+      "identifier[mrn].value"
+    ],
+    "transforms": []
+  },
+  "paciente.dni": {
+    "status": "mapped",
+    "from": [
+      "extension[dni]"
+    ],
+    "transforms": []
+  },
+  "paciente.nombre": {
+    "status": "mapped",
+    "from": [
+      "name.given"
+    ],
+    "transforms": []
+  },
+  "paciente.apellidos": {
+    "status": "mapped",
+    "from": [
+      "name.family"
+    ],
+    "transforms": []
+  },
+  "paciente.fecha_nacimiento": {
+    "status": "mapped",
+    "from": [
+      "birthDate"
+    ],
+    "transforms": []
+  },
+  "paciente.sexo": {
+    "status": "mapped",
+    "from": [
+      "gender"
+    ],
+    "transforms": []
+  },
+  "paciente.telefono": {
+    "status": "mapped",
+    "from": [
+      "telecom[phone].value"
+    ],
+    "transforms": []
+  },
+  "direccion.calle": {
+    "status": "mapped",
+    "from": [
+      "address.line"
+    ],
+    "transforms": []
+  },
+  "direccion.ciudad": {
+    "status": "mapped",
+    "from": [
+      "address.city"
+    ],
+    "transforms": []
+  },
+  "direccion.codigo_postal": {
+    "status": "no_data",
+    "from": [],
+    "transforms": []
+  },
+  "datos_clinicos.grupo_sanguineo": {
+    "status": "mapped",
+    "from": [
+      "extension[grupo-sanguineo]"
+    ],
+    "transforms": [
+      {
+        "op": "translate",
+        "values": {
+          "0+": "O+",
+          "0-": "O-"
         }
-      ]
-    },
-    "datos_clinicos.peso_kg": {
-      "status": "mapped",
-      "sources": [
-        "Patient:extension[peso]"
-      ],
-      "ops": [
-        {
-          "op": "number"
-        }
-      ]
-    },
-    "datos_clinicos.altura_cm": {
-      "status": "mapped",
-      "sources": [
-        "Patient:extension[altura]"
-      ],
-      "ops": [
-        {
-          "op": "number"
-        }
-      ]
-    },
-    "datos_clinicos.alergia": {
-      "status": "mapped",
-      "sources": [
-        "Patient:extension[alergia]"
-      ],
-      "ops": []
-    },
-    "datos_clinicos.medico_responsable": {
-      "status": "no_source",
-      "sources": [],
-      "ops": []
-    }
+      }
+    ]
+  },
+  "datos_clinicos.peso_kg": {
+    "status": "mapped",
+    "from": [
+      "extension[peso]"
+    ],
+    "transforms": [
+      {
+        "op": "number"
+      }
+    ]
+  },
+  "datos_clinicos.altura_cm": {
+    "status": "mapped",
+    "from": [
+      "extension[altura]"
+    ],
+    "transforms": [
+      {
+        "op": "number"
+      }
+    ]
+  },
+  "datos_clinicos.alergia": {
+    "status": "mapped",
+    "from": [
+      "extension[alergia]"
+    ],
+    "transforms": []
+  },
+  "datos_clinicos.medico_responsable": {
+    "status": "no_data",
+    "from": [],
+    "transforms": []
   }
 }
