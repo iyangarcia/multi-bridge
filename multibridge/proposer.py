@@ -22,37 +22,41 @@ import re
 import time
 from pathlib import Path
 
-from . import matcher, recipe
+from . import matcher, packs, recipe
 from .ai import ollama
 from .aiview import source_view, target_view
 from .concepts import _flat, evidence
 from .expected import Expected
+from .model import is_metadata
 from .records import Rows
 
 DEFAULT_MODEL = "qwen3:8b"
 DOUBTFUL = 0.7
 MAX_EXAMPLES = 3
 
-SYSTEM = """You map the columns of a hospital data file onto the fields a clinical application expects.
+SYSTEM = """You map the columns of a data file onto the fields an application expects.
 You only see structure: column names, descriptions, types, masked samples (letters become X/x, digits 9),
-number summaries (min/median/max) and harmless category values. You never see patient data.
+number summaries (min/median/max) and harmless category values. You never see the real data.
 
 For EVERY target field return one decision:
 - "mapped": the source column(s) holding that information. Use two columns only to join the parts
-  of one value, in output order (for example a doctor's given name, then family name).
+  of one value, in output order (for example a given name, then a family name).
 - "no_data": no column holds it. Never force a match just to fill a field.
 - "pending": a column might hold it, but a human must decide (ambiguous or conflicting).
 
 Rules:
 - Use only column names from the list, exactly as written. Use each column at most once.
-- A patient field never comes from another person's column (doctor, relative, contact).
-- Custom fields (HL7 Z-segments, FHIR extensions, unnamed columns) have no documentation: judge them
-  by type, number ranges and category values, and say so in "why".
-- Observation values (HL7 OBX-5, FHIR Observation.value) hold different measurements in different
-  rows; use them only as "pending".
-- If a target lists allowed values and the column's values differ (for example H/M vs male/female),
+- A field about the record's subject never comes from a column about someone else.
+- Custom fields (extensions, unnamed columns) have no documentation: judge them by type, number
+  ranges and category values, and say so in "why".
+- If a target lists allowed values and the column's values differ (for example Y/N vs true/false),
   add "translate" pairs for every source value you can translate.
 - "confidence": your honest estimate from 0 to 1. "why": one short sentence in Spanish."""
+
+
+def system_prompt(expected: Expected) -> str:
+    """The destination's domain pack may say how to read files of its domain."""
+    return packs.get(expected.pack).system_prompt or SYSTEM
 
 
 def schema(targets: list[str], columns: list[str]) -> dict:
@@ -109,33 +113,30 @@ def _prompt(rows: Rows, expected: Expected, examples: list[dict], only: list[str
 
 
 def offered(rows: Rows) -> list[str]:
-    """Columns the model may choose from. FHIR metadata (identifier.system, telecom.use...) only describes
+    """Columns the model may choose from. Metadata (identifier.system, telecom.use...) only describes
     its neighbour .value; qwen3:8b used it to invent fields that have no source, so it is never offered."""
     return [c for c, f in rows.columns.items()
-            if f.dtype != "empty" and not re.search(r"\.(system|use|type)$", f.path)]
+            if f.dtype != "empty" and not is_metadata(f.path)]
 
 
-def _conflict(rows: Rows, cols: list[str], t) -> str | None:
+def _conflict(rows: Rows, cols: list[str], t, pack) -> str | None:
     """Does a chosen column clearly mean something else? A cross-check of the model against the rules.
 
-    Seen in the evaluation: the technical FHIR `id` taken as the patient id, a full-name column taken as
-    the first name, a diagnosis column taken as the doctor. All become pending.
+    Seen in the evaluation: a technical `id` taken as the record's identifier; the pack adds its
+    domain's cases. All become pending.
     """
     if not t.concept:
         return None
     for c in cols:
         f = rows.columns[c]
-        ev = evidence(f, rows.values(c))
+        ev = evidence(f, rows.values(c), pack)
         strong = {k for k, w in ev.weights.items() if w >= 0.9 and ev.kinds.get(k) in ("standard", "name")}
         standard = {k for k in strong if ev.kinds.get(k) == "standard"}
-        if standard:  # a known HL7/FHIR position outranks a name that happens to match ("Patient.id")
+        if standard:  # a known standard position outranks a name that happens to match (a technical "id")
             strong = standard
-        if f.kind == "clinical_concept" and t.concept != "diagnostico":
-            return f"la columna {c} contiene diagnósticos"
-        if t.concept in ("nombre", "apellidos") and len(cols) == 1 and {"nombre", "apellidos"} <= strong:
-            return f"la columna {c} tiene nombre y apellidos juntos: hace falta separarlos"
-        if t.concept == "medico" and ev.role == "practitioner":
-            strong -= {"nombre", "apellidos"}
+        why, strong = pack.conflict(c, f, ev, t, cols, strong)
+        if why:
+            return why
         if strong and t.concept not in strong:
             return f"la columna {c} parece ser {', '.join(sorted(strong))}, no {t.concept}"
     return None
@@ -145,6 +146,7 @@ def _fields_from_answer(answer: dict, rows: Rows, expected: Expected, model: str
                         only: list[str] | None = None, taken: dict[str, str] | None = None,
                         rules: dict | None = None) -> dict[str, dict]:
     """Check the model's reply and turn it into recipe fields. Anything dubious becomes 'pending'."""
+    pack = packs.get(expected.pack)
     wanted = [t for t in expected.targets if only is None or t.path in only]
     allowed = set(offered(rows))
     by_target: dict[str, dict] = {}
@@ -190,19 +192,19 @@ def _fields_from_answer(answer: dict, rows: Rows, expected: Expected, model: str
             if suggestion.get("status") == "mapped" and (suggestion.get("confidence") or 0) >= 0.85:
                 status = "pending"
                 issues.append(f"el modelo dice que no hay dato, pero las reglas sugieren {' + '.join(suggestion['from'])}")
-        if cols and (conflict := _conflict(rows, cols, t)):
+        if cols and (conflict := _conflict(rows, cols, t, pack)):
             issues.append(f"{conflict}: revisar")
             status = "pending"
 
         transforms: list[dict] = []
-        if len(cols) > 1:
-            cols = _name_order(rows, cols)
+        if len(cols) > 1:   # output order is a formatting rule, so the code decides it, not the model
+            cols = pack.order_columns(rows, cols, lambda c: evidence(rows.columns[c], rows.values(c), pack))
         if cols:
-            transforms, rule_issues, needs_human = matcher.transforms_for(rows, cols, t)
+            transforms, rule_issues, needs_human = matcher.transforms_for(rows, cols, t, pack)
             issues += rule_issues
             if t.enum is not None:
                 transforms, issues, needs_human = _merge_translations(rows, cols, t, item, transforms, issues,
-                                                                      needs_human)
+                                                                      needs_human, pack)
             if needs_human:
                 status = "pending"
             if any(rows.columns[c].custom for c in cols):
@@ -214,17 +216,7 @@ def _fields_from_answer(answer: dict, rows: Rows, expected: Expected, model: str
     return {t.path: fields[t.path] for t in wanted}
 
 
-def _name_order(rows: Rows, cols: list[str]) -> list[str]:
-    """Joining name parts: given name first, then family name ("Pablo Martinez"), whatever order the model chose.
-    Output order is a formatting rule, so the code decides it, not the model."""
-    def rank(c: str) -> int:
-        ev = evidence(rows.columns[c], rows.values(c))
-        return 0 if ev.weights.get("nombre", 0) >= 0.9 else 1 if ev.weights.get("apellidos", 0) >= 0.9 else 2
-    ranks = [rank(c) for c in cols]
-    return [c for _, c in sorted(zip(ranks, cols), key=lambda x: x[0])] if {0, 1} <= set(ranks) else cols
-
-
-def _merge_translations(rows, cols, t, item, transforms, issues, needs_human):
+def _merge_translations(rows, cols, t, item, transforms, issues, needs_human, pack):
     """Use the model's translations only for values the rules couldn't translate, and only into allowed values."""
     flat = set(_flat(rows.values(cols[0])))
     proposed = {p.get("source"): p.get("target") for p in item.get("translate") or [] if isinstance(p, dict)}
@@ -242,8 +234,8 @@ def _merge_translations(rows, cols, t, item, transforms, issues, needs_human):
         issues.append(f"traducción propuesta por la IA: {', '.join(f'{k}→{v}' for k, v in accepted.items())} (revisar)")
     if rejected:
         issues.append(f"valores sin traducción al catálogo: {', '.join(rejected)}")
-    observation = any(i.startswith("valor de observación") for i in issues)
-    return transforms, issues, bool(rejected) or observation
+    mixed = pack.mixed_column(rows.columns[cols[0]]) is not None
+    return transforms, issues, bool(rejected) or mixed
 
 
 def propose_ai(rows: Rows, expected: Expected, model: str = DEFAULT_MODEL, name: str | None = None,
@@ -253,7 +245,8 @@ def propose_ai(rows: Rows, expected: Expected, model: str = DEFAULT_MODEL, name:
     rules = matcher.propose(rows, expected)  # cross-check only: never copied silently
     targets = [t.path for t in expected.targets]
     started = time.monotonic()
-    answer = chat(model, SYSTEM, _prompt(rows, expected, examples or []), schema=schema(targets, columns), think=False)
+    system = system_prompt(expected)
+    answer = chat(model, system, _prompt(rows, expected, examples or []), schema=schema(targets, columns), think=False)
     fields = _fields_from_answer(answer, rows, expected, model, rules=rules)
 
     retried: list[str] = []
@@ -263,7 +256,7 @@ def propose_ai(rows: Rows, expected: Expected, model: str = DEFAULT_MODEL, name:
         if doubtful:
             taken = {c: t for t, f in fields.items() if t not in doubtful for c in f["from"]}
             free = [c for c in columns if c not in taken]
-            again = chat(model, SYSTEM, _prompt(rows, expected, examples or [], only=doubtful),
+            again = chat(model, system, _prompt(rows, expected, examples or [], only=doubtful),
                          schema=schema(doubtful, free or columns), think=True)
             for t, f in _fields_from_answer(again, rows, expected, f"{model} (think)", only=doubtful, rules=rules,
                                             taken=taken).items():

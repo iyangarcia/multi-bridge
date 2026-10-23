@@ -1,8 +1,12 @@
 """Profile every Field and build the privacy-safe view the AI is allowed to see.
 
 profile_dataset(ds)  fills dtype/format/unit/kind/sensitive/categories/concepts.
-as_ai(ds, level)     returns what may leave the hospital: structure, types and
+as_ai(ds, level)     returns what may leave the organisation: structure, types and
                      non-identifying categories. Never values of sensitive columns.
+
+The core detects general personal data (names, ID documents, contact, addresses, dates of
+birth). Every installed domain pack adds its own hints, code shapes and terminology
+(packs/): before the destination is known, over-detecting is the safe side.
 """
 
 from __future__ import annotations
@@ -11,10 +15,9 @@ import datetime as dt
 import re
 from collections import Counter
 
-from .model import Dataset, Field
-from .terms import get_normalizer
-from .terms.base import AMBIGUOUS, MATCHED, UNKNOWN
-from .terms.lexical import norm
+from .concepts import words as _text
+from .model import Dataset, Field, is_metadata
+from .terminology import AMBIGUOUS, MATCHED, UNKNOWN
 
 # --- value types ------------------------------------------------------------------------------
 
@@ -25,14 +28,13 @@ DATE_FORMATS = [
     (re.compile(r"^\d{1,2}-\d{1,2}-\d{4}$"), "%d-%m-%Y", "dd-mm-yyyy", "date"),
     (re.compile(r"^\d{1,2}\.\d{1,2}\.\d{4}$"), "%d.%m.%Y", "dd.mm.yyyy", "date"),
 ]
-HL7_TS = [(8, "%Y%m%d", "yyyymmdd", "date"), (12, "%Y%m%d%H%M", "yyyymmddHHMM", "datetime"),
-          (14, "%Y%m%d%H%M%S", "yyyymmddHHMMSS", "datetime")]
+# Compact timestamps, read only where a format declares a timestamp type
+COMPACT_TS = [(8, "%Y%m%d", "yyyymmdd", "date"), (12, "%Y%m%d%H%M", "yyyymmddHHMM", "datetime"),
+              (14, "%Y%m%d%H%M%S", "yyyymmddHHMMSS", "datetime")]
 INT = re.compile(r"^[+-]?\d+$")
 DEC_DOT = re.compile(r"^[+-]?\d+\.\d+$")
 DEC_COMMA = re.compile(r"^[+-]?\d+,\d+$")
 BOOL = {"true", "false", "si", "sí", "no", "s", "n", "yes", "y"}
-ICD10 = re.compile(r"^[A-Z]\d{2}(\.[0-9A-Z]{1,4})?$")
-TABLE_CODED = {"ID", "IS", "PT", "HD", "SI"}  # HL7 types whose values come from fixed code tables
 
 UNITS = {"kg", "g", "mg", "cm", "m", "mm", "mmhg", "mg/dl", "mmol/l", "%", "°c", "ºc", "lpm", "rpm",
          "años", "anos", "meses", "dias", "días", "ml", "l", "ui", "kg/m2"}
@@ -47,10 +49,21 @@ def _valid(v: str, fmt: str) -> bool:
         return False
 
 
-def value_type(v: str, declared: str | None) -> tuple[str, str | None]:
-    if declared in ("TS", "DT", "DTM"):
+def _declared(declared: str | None) -> str | None:
+    from .formats import declared_kind
+    return declared_kind(declared)
+
+
+def _packs(packs):
+    from . import packs as registry
+    return registry.installed() if packs is None else list(packs)
+
+
+def value_type(v: str, declared: str | None, packs=None) -> tuple[str, str | None]:
+    kind_declared = _declared(declared)
+    if kind_declared == "timestamp":
         digits = v.split("+")[0].split("-")[0].split(".")[0]
-        for n, fmt, label, kind in HL7_TS:
+        for n, fmt, label, kind in COMPACT_TS:
             if len(digits) == n and digits.isdigit() and _valid(digits, fmt):
                 return kind, label
     for rx, fmt, label, kind in DATE_FORMATS:
@@ -66,45 +79,62 @@ def value_type(v: str, declared: str | None) -> tuple[str, str | None]:
         return "decimal", "decimal comma"
     if v.lower() in BOOL:
         return "boolean", None
-    # HL7 table-coded fields (event "A01", coding system "I10") look like ICD-10 but are not
-    if ICD10.match(v) and declared not in TABLE_CODED:
-        return "code", "ICD-10"
+    # Values a format declares as table-coded (event "A01", coding system "I10") look like codes but are not
+    if kind_declared != "coded":
+        for pack in _packs(packs):
+            for label, rx in pack.code_patterns:
+                if rx.match(v):
+                    return "code", label
     return "string", None
 
 
 # --- sensitivity ------------------------------------------------------------------------------
 
-NAME_HINTS = {
-    "documento de identidad": ["dni", "nif", "nie", "pasaporte", "ssn", "seguridad social", "nss", "pid 19"],
-    "identificador del paciente": ["nhc", "historia", "mrn", "identifier", "identificador", "cip",
-                                   "tarjeta sanitaria", "pid 3", "pid 2", "pid 18"],
-    "nombre": ["nombre", "apellido", "apellidos", "name", "given", "family", "pid 5", "pid 6", "nk1 2"],
-    "contacto": ["telefono", "movil", "phone", "telecom", "email", "correo", "pid 13", "pid 14"],
-    "dirección": ["domicilio", "direccion", "calle", "address line", "street", "pid 11 1", "pid 11 2"],
-    "fecha de nacimiento": ["nacimiento", "birth", "birthdate", "dob", "f nac", "pid 7"],
-    "nombre de profesional": ["medico", "doctor", "practitioner", "facultativo", "pv1 7"],
-}
+# (rank, reason, field-name hints). Packs add theirs; a lower rank is checked first.
+NAME_HINTS = [
+    (10, "documento de identidad", ["dni", "nif", "nie", "pasaporte", "ssn", "seguridad social", "nss"]),
+    (21, "identificador", ["identifier", "identificador"]),
+    (30, "nombre", ["nombre", "apellido", "apellidos", "name", "given", "family"]),
+    (40, "contacto", ["telefono", "movil", "phone", "telecom", "email", "correo"]),
+    (50, "dirección", ["domicilio", "direccion", "calle", "address line", "street"]),
+    (60, "fecha de nacimiento", ["nacimiento", "birth", "birthdate", "dob", "f nac"]),
+    # GDPR art. 9 special categories, in any domain
+    (80, "categoría especial (art. 9 RGPD)", ["salud", "health", "religion", "creencias", "etnia", "ethnic",
+                                               "raza", "race", "sindicato", "union membership",
+                                               "orientacion sexual", "sexual orientation", "vida sexual",
+                                               "opinion politica", "political", "afiliacion politica",
+                                               "genetico", "genetic", "biometrico", "biometric"]),
+]
 VALUE_PATTERNS = {
     "DNI": re.compile(r"^\d{8}[A-Za-z]$"),
     "NIE": re.compile(r"^[XYZxyz]\d{7}[A-Za-z]$"),
     "teléfono": re.compile(r"^(\+?34)?[6789]\d{8}$"),
     "email": re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I),
+    "IBAN": re.compile(r"^[A-Z]{2}\d{2}( ?[A-Z0-9]{4}){3,7}( ?[A-Z0-9]{1,4})?$"),
+    # "Ana Ruiz", "María de la Paz Gil": two to five capitalised words of letters only. Product names
+    # match too; hiding them from the AI is the safe side of the mistake.
+    "nombre de persona": re.compile(r"^[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]+(-[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]+)?"
+                                    r"( (de |del |de la |de los )?[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]+"
+                                    r"(-[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]+)?){1,4}$"),
 }
-ID_REASONS = {"documento de identidad", "identificador del paciente"}
+ID_REASONS = {"documento de identidad", "identificador"}
 
 
-def _words(f: Field) -> str:
-    camel = re.sub(r"([a-z])([A-Z])", r"\1 \2", f"{f.path} {f.label}")
-    return f" {norm(camel)} "
+def _name_hints(packs) -> list[tuple[str, list[str]]]:
+    merged: dict[str, tuple[int, list[str]]] = {}
+    for rank, reason, hints in NAME_HINTS + [x for p in packs for x in p.sensitive]:
+        old = merged.get(reason)
+        merged[reason] = (min(rank, old[0]) if old else rank, (old[1] if old else []) + hints)
+    return [(reason, hints) for reason, (_, hints) in sorted(merged.items(), key=lambda x: x[1][0])]
 
 
-def _sensitivity(f: Field, values: list[str]) -> str | None:
-    words = _words(f)
-    # Metadata next to a sensitive value is not itself personal data:
-    # FHIR "identifier.system", "telecom.use"; HL7 PID-3.4..6 (who issued the ID, ID type)
-    is_metadata = re.search(r"\.(system|use|type)$|^PID-3\.[4-6]$", f.path) is not None
-    for reason, hints in NAME_HINTS.items():
-        if not is_metadata and any(f" {h} " in words for h in hints):
+def _sensitivity(f: Field, values: list[str], packs) -> str | None:
+    words = _text(f.path, f.label)
+    # Metadata next to a sensitive value is not itself personal data ("identifier.system", "telecom.use",
+    # or what a pack says: who issued an ID, its type)
+    metadata = is_metadata(f.path) or any(p.not_personal(f) for p in packs)
+    for reason, hints in _name_hints(packs):
+        if not metadata and any(f" {h} " in words for h in hints):
             return reason
     for label, rx in VALUE_PATTERNS.items():
         if values and sum(bool(rx.match(v)) for v in values) >= 0.5 * len(values):
@@ -126,7 +156,25 @@ def _flat(values) -> tuple[list[str], int]:
     return out, nulls
 
 
-def profile_field(f: Field, values: list, normalizer=None) -> None:
+_NORMALIZERS: dict[str, object] = {}
+
+
+def _normalizers(packs, normalizer=None) -> list[tuple[object, str]]:
+    """(normalizer, Field.kind it gives) per pack that has one. Built once per pack."""
+    out = []
+    for p in packs:
+        if normalizer is not None:
+            return [(normalizer, p.concept_kind)]
+        if p.name not in _NORMALIZERS:
+            _NORMALIZERS[p.name] = p.normalizer()
+        if _NORMALIZERS[p.name] is not None:
+            out.append((_NORMALIZERS[p.name], p.concept_kind))
+    return out
+
+
+def profile_field(f: Field, values: list, normalizer=None, packs=None) -> None:
+    """`packs`: the domain packs whose detectors run (default: every installed one)."""
+    packs = _packs(packs)
     flat, nulls = _flat(values)
     f.null_ratio = round(nulls / len(values), 2) if values else 1.0
     f.distinct = len(set(flat))
@@ -135,18 +183,24 @@ def profile_field(f: Field, values: list, normalizer=None) -> None:
     if not flat:
         f.dtype, f.kind = "empty", "value"
         return
-    if f.path.startswith("_"):  # synthetic link added by a parser (HL7 _message)
+    if f.path.startswith("_"):  # synthetic link added by a parser (a message id)
         f.dtype, f.kind = "string", "reference"
         return
 
-    types = Counter(value_type(v, f.declared_type) for v in flat)
+    types = Counter(value_type(v, f.declared_type, packs) for v in flat)
     (dtype, fmt), n = types.most_common(1)[0]
     kinds = Counter(t for t, _ in types.elements())
+    formats = None
     if {"integer", "decimal"} >= set(kinds) and len(kinds) == 2:
         dtype, fmt = "decimal", next((fm for (t, fm) in types if t == "decimal" and fm), None)
+    elif set(kinds) <= {"date", "datetime"} and len({fm for _, fm in types}) > 1:
+        # One column, several date shapes: 19601105 next to 198504121030, or an Excel column with
+        # real dates and typed "05/11/1960". Still dates; the engine tries each format in turn.
+        dtype, fmt = kinds.most_common(1)[0][0], "mixed"
+        formats = sorted({fm for _, fm in types})
     elif n < 0.9 * len(flat):
         dtype, fmt = "string", None
-    f.dtype, f.format = dtype, fmt
+    f.dtype, f.format, f.formats = dtype, fmt, formats
 
     m = UNIT_IN_LABEL.search(f.label or f.path)
     if m:
@@ -154,12 +208,13 @@ def profile_field(f: Field, values: list, normalizer=None) -> None:
         if unit in UNITS:
             f.unit = unit
 
-    reason = _sensitivity(f, flat)
+    reason = _sensitivity(f, flat, packs)
     f.sensitive, f.sensitive_reason = reason is not None, reason
 
     avg_len = sum(len(v) for v in flat) / len(flat)
     id_shaped = sum(bool(re.search(r"[A-Za-z]", v) and re.search(r"\d", v) and " " not in v) for v in flat)
-    if reason in ID_REASONS or (f.distinct == len(flat) and len(flat) > 3 and dtype == "string"
+    id_reasons = ID_REASONS | {r for p in packs for r in p.id_reasons}
+    if reason in id_reasons or (f.distinct == len(flat) and len(flat) > 3 and dtype == "string"
                                 and id_shaped >= 0.8 * len(flat)):
         f.kind = "identifier"
     elif dtype == "code":
@@ -171,18 +226,20 @@ def profile_field(f: Field, values: list, normalizer=None) -> None:
     elif dtype == "string" and (avg_len >= 15 or sum(" " in v for v in flat) > len(flat) / 2):
         f.kind = "free_text"
 
-    if (dtype in ("string", "code") and not f.sensitive and normalizer is not None and f.kind != "identifier"
-            and f.declared_type not in TABLE_CODED):
-        _concepts(f, flat, normalizer)
+    if dtype in ("string", "code") and not f.sensitive and f.kind != "identifier" \
+            and _declared(f.declared_type) != "coded":
+        for norm, kind in _normalizers(packs, normalizer):
+            if _concepts(f, flat, norm, kind):
+                break
 
 
-def _concepts(f: Field, flat: list[str], normalizer) -> None:
+def _concepts(f: Field, flat: list[str], normalizer, kind: str) -> bool:
     distinct = list(dict.fromkeys(flat))[:200]
     results = {v: normalizer.normalize(v) for v in distinct}
     recognised = sum(1 for ms in results.values() if ms and all(m.status != UNKNOWN for m in ms))
     if recognised < max(1, 0.4 * len(distinct)):
-        return
-    f.kind = "clinical_concept"
+        return False
+    f.kind = kind
     if f.categories:
         f.categories = None
     statuses = Counter(m.status for ms in results.values() for m in ms)
@@ -196,12 +253,13 @@ def _concepts(f: Field, flat: list[str], normalizer) -> None:
         "qualifiers": dict(Counter(m.qualifier for ms in results.values() for m in ms)),
         "systems": sorted({m.system for ms in results.values() for m in ms if m.system}),
     }
+    return True
 
 
-def profile_dataset(ds: Dataset, normalizer=None) -> Dataset:
-    normalizer = normalizer or get_normalizer()
+def profile_dataset(ds: Dataset, normalizer=None, packs=None) -> Dataset:
+    packs = _packs(packs)
     for f in ds.fields:
-        profile_field(f, ds.values(f), normalizer)
+        profile_field(f, ds.values(f), normalizer, packs)
     return ds
 
 

@@ -1,18 +1,23 @@
 """Recipes: the approved "this column goes to that field, transformed like this" (hackathon "receta").
 
     {
-      "recipe": "huca_oviedo_hl7v23", "status": "draft" | "approved",
-      "expected": "cdss_paciente#f634a246",
-      "source": {"file": ..., "format": "hl7v2", "signature": [["PID-5.2", "string"], ...]},
+      "recipe": "pedidos_tienda", "status": "draft" | "approved",
+      "expected": "pedido#f634a246",
+      "source": {"file": ..., "format": "csv", "signature": [["Nombre", "string"], ...]},
       "fields": {
-        "paciente.nombre": {"status": "mapped", "from": ["PID-5.2"], "transforms": [{"op": "title"}],
+        "cliente.nombre": {"status": "mapped", "from": ["Nombre"], "transforms": [{"op": "title"}],
                             "confidence": 0.94, "proposed_by": "rules", "why": [...], "issues": [...],
                             "proposal": {...frozen copy of what was proposed...}},
         "direccion.codigo_postal": {"status": "no_data", "from": [], ...},
       },
-      "unmatched": ["PID-11.4", ...],
+      "unmatched": ["Provincia", ...],
+      "extras": {"carry": ["Alergia_local"], "drop": ["Provincia", ...], "by": "Ana"},
       "approval": {"by": "Ana", "at": "...", "sha256": "..."}
     }
+
+Unmatched source fields are never dropped silently (ROADMAP D14): at approval each one is either
+carried through (the writer puts it in the destination's slot for extras: an extension, an extra
+column or element) or dropped, and `extras` records the decision and who made it.
 
 Field status, as in the hackathon design: "mapped" | "no_data" | "pending". Nothing pending may be approved.
 Approval is tied to a hash of the exact decisions; editing one afterwards invalidates it. At
@@ -70,6 +75,9 @@ def new(name: str, rows: Rows, expected: Expected, fields: dict[str, dict], prop
 def plan_hash(recipe: dict) -> str:
     plan = {"expected": recipe["expected"], "format": recipe["source"]["format"],
             "fields": {t: _decision(f) for t, f in recipe["fields"].items()}}
+    if recipe.get("extras"):
+        plan["extras"] = {"carry": sorted(recipe["extras"].get("carry") or []),
+                          "drop": sorted(recipe["extras"].get("drop") or [])}
     return hashlib.sha256(json.dumps(plan, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
@@ -93,13 +101,24 @@ def problems(recipe: dict, expected: Expected) -> list[str]:
     return out
 
 
-def approve(recipe: dict, expected: Expected, by: str) -> dict:
+def approve(recipe: dict, expected: Expected, by: str, carry: list[str] | None = None) -> dict:
+    """`carry`: unmatched source columns to carry through; every other unmatched column is dropped,
+    and both lists are recorded with the approver's name."""
     found = problems(recipe, expected)
     if not by.strip():
         found.append("hay que indicar quién aprueba")
+    used = {c for f in recipe["fields"].values() for c in f.get("from", [])}
+    carry = list(dict.fromkeys(carry or []))
+    for c in carry:
+        if c in used:
+            found.append(f"{c}: ya se usa en un campo del destino; no puede ir además como campo extra")
+        elif c not in recipe.get("unmatched", []):
+            found.append(f"{c}: no es una columna sin usar del origen")
     if found:
         raise ApprovalError(found)
     out = json.loads(json.dumps(recipe))
+    unused = [c for c in out.get("unmatched", []) if c not in used]
+    out["extras"] = {"carry": carry, "drop": [c for c in unused if c not in carry], "by": by.strip()}
     for f in out["fields"].values():
         if _decision(f) != f.get("proposal"):
             f["changed_by"] = by.strip()
@@ -123,6 +142,9 @@ def compatible(recipe: dict, rows: Rows, expected: Expected) -> list[str]:
         why.append(f"otro destino ({recipe['expected']})")
     if recipe["source"]["format"] != rows.format:
         why.append(f"otro formato ({recipe['source']['format']})")
+    for column in (recipe.get("extras") or {}).get("carry") or []:
+        if column not in rows.columns:
+            why.append(f"falta la columna {column} (se lleva como campo extra)")
     for column, dtype in recipe["source"]["signature"]:
         f = rows.columns.get(column)
         if f is None:

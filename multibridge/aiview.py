@@ -7,8 +7,8 @@ without its content:
     masked samples   "FERNANDEZ ALVAREZ" -> "XXXXXXXXX XXXXXXX", "HC-7781" -> "XX-9999",
                      "14/02/1978" -> "99/99/9999": the shape (case, length, digits, separators)
                      without the content
-    numeric summary  for non-sensitive measurements (weights, heights): min / median / max
-    concepts         for diagnosis text: how many values the terminology recognised, never the text
+    numeric summary  for non-sensitive measurements: min / median / max
+    concepts         for domain terms: how many values the pack's terminology recognised, never the text
 
 This is pseudonymisation, not anonymisation (GDPR recital 26): the view is for a model running
 on this machine. A remote model (Jev) would get even less (COMPLIANCE C5).

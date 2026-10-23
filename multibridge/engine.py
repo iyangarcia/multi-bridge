@@ -1,9 +1,19 @@
-"""The engine: approved recipe + flat rows -> output records. No AI, no joins, no guessing.
+"""The engine: approved recipe + flat rows -> output items. No AI, no joins, no guessing.
 
 For each row and each target field: take the values of the `from` columns, apply the
 transforms in order, check the result against EXPECTED. A row that breaks a rule is set
 aside with the reason (never silently fixed). The report has positions and reasons only,
 never data values (docs/COMPLIANCE.md C11).
+
+Cardinality (output.py has the item shape):
+    one row -> one item           the default
+    many rows -> one item         the destination's "$group_by": rows with the same key value
+                                  become one item; fields outside the repeated group must agree
+                                  across those rows, fields inside it give one entry per row
+    one row -> several entries    a target that takes a list (example ["a", "b"]), or a template
+                                  with several parts per item (a standard message writer)
+Custom fields (ROADMAP D14): the recipe's "extras" say which unmatched source columns are carried
+through (copied as they are into the item's extras) and which were dropped, by whom.
 
 Transforms (hackathon list + format conversions):
     (none)          copy the value as is
@@ -26,6 +36,7 @@ import re
 from dataclasses import dataclass, field
 
 from .expected import Expected, Target
+from .output import EXTRAS, nest
 from .recipe import verify
 from .records import Rows
 
@@ -56,13 +67,16 @@ def _number(v, decimal: str = "."):
     return int(n) if n.is_integer() else n
 
 
-def _date(v: str, fmt: str) -> str:
-    try:
-        if fmt == "iso":
-            return dt.date.fromisoformat(v[:10]).isoformat()
-        return dt.datetime.strptime(v[:8] if fmt == "%Y%m%d" else v, fmt).date().isoformat()
-    except ValueError:
-        raise TransformError(f"fecha no válida para el formato {fmt}") from None
+def _date(v: str, fmt: str | list[str]) -> str:
+    """`fmt` may be a list: a column that mixes date shapes; the formats are tried in the listed order."""
+    for f in [fmt] if isinstance(fmt, str) else fmt:
+        try:
+            if f == "iso":
+                return dt.date.fromisoformat(v[:10]).isoformat()
+            return dt.datetime.strptime(v[:8] if f == "%Y%m%d" else v, f).date().isoformat()
+        except ValueError:
+            continue
+    raise TransformError(f"fecha no válida para el formato {fmt}")
 
 
 def _phone(v: str, country: str) -> str:
@@ -121,6 +135,9 @@ def field_value(row: dict, spec: dict, target: Target):
             values = [x for x in (VALUE_TRANSFORMS[t["op"]](v, t) for v in values) if x is not None]
         else:
             raise TransformError(f"transformación desconocida {t['op']!r}")
+    if target.multiple == "list":
+        out = [_cast(target, v) for v in values]
+        return out if out else ([] if spec.get("default") is None else [_cast(target, spec["default"])])
     if len(values) > 1:
         if target.multiple == "join":
             values = ["; ".join(str(v) for v in values)]
@@ -133,16 +150,58 @@ def field_value(row: dict, spec: dict, target: Target):
 
 @dataclass
 class Result:
-    records: list[dict] = field(default_factory=list)
+    records: list[dict] = field(default_factory=list)    # nested, the JSON view of each item
     rejected: list[dict] = field(default_factory=list)   # {"row": i, "errors": [{"field", "reason"}]}, no values
     report: dict = field(default_factory=dict)
+    items: list[dict] = field(default_factory=list)      # flat items, what the writers take
+
+    def write(self, expected: Expected) -> bytes:
+        """The output in the destination's own format."""
+        from . import formats
+        return formats.get(expected.format).write(self.items, expected)
 
 
-def _set(out: dict, path: str, value) -> None:
-    *parents, leaf = path.split(".")
-    for p in parents:
-        out = out.setdefault(p, {})
-    out[leaf] = value
+def _same(a, b) -> bool:
+    return a == b or (a in (None, "", []) and b in (None, "", []))
+
+
+def _group(flat_rows: list[tuple[int, dict]], expected: Expected) -> tuple[list[dict], list[dict]]:
+    """Many rows -> one item. Returns (items, rejected)."""
+    groups = {g: [t.path for t in expected.targets if t.group == g] for g in expected.groups}
+    outside = [t.path for t in expected.targets if not t.group]
+    buckets: dict[str, list[tuple[int, dict]]] = {}
+    rejected = []
+    for i, flat in flat_rows:
+        if expected.group_by:
+            key = flat.get(expected.group_by)
+            if key in (None, ""):
+                rejected.append({"row": i, "errors": [{"field": expected.group_by, "reason": "sin valor en el campo que agrupa"}]})
+                continue
+            buckets.setdefault(str(key), []).append((i, flat))
+        else:
+            buckets[str(i)] = [(i, flat)]
+    items = []
+    for members in buckets.values():
+        first = members[0][1]
+        clash = [p for p in outside if any(not _same(first.get(p), f.get(p)) for _, f in members[1:])]
+        if clash:
+            rejected += [{"row": i, "errors": [{"field": p, "reason": "valores distintos en filas del mismo grupo"}
+                                               for p in clash]} for i, _ in members]
+            continue
+        item = {p: first.get(p) for p in outside if p in first}
+        for g, paths in groups.items():
+            subs = [{p: f.get(p) for p in paths if p in f} for _, f in members]
+            item[g] = [s for s in subs if any(v not in (None, []) for v in s.values())]
+        extras: dict = {}
+        for _, f in members:
+            for k, v in (f.get(EXTRAS) or {}).items():
+                extras.setdefault(k, [])
+                if v not in (None, "") and v not in extras[k]:
+                    extras[k].append(v)
+        if extras:
+            item[EXTRAS] = {k: (v[0] if len(v) == 1 else v or None) for k, v in extras.items()}
+        items.append(item)
+    return items, rejected
 
 
 def run(rows: Rows, recipe: dict, expected: Expected) -> Result:
@@ -151,6 +210,9 @@ def run(rows: Rows, recipe: dict, expected: Expected) -> Result:
         raise ValueError(f"la receta es para {recipe['expected']}, no para {expected.id}")
     result = Result()
     empty = {t.path: 0 for t in expected.targets}
+    extras = recipe.get("extras") or {}
+    carried = extras.get("carry") or []
+    flat_rows: list[tuple[int, dict]] = []
     for i, row in enumerate(rows.rows):
         out, errors = {}, []
         for t in expected.targets:
@@ -164,15 +226,24 @@ def run(rows: Rows, recipe: dict, expected: Expected) -> Result:
             if problem:
                 errors.append({"field": t.path, "reason": problem})
                 continue
-            if value is None:
+            if value is None or value == []:
                 empty[t.path] += 1
                 if t.on_missing == "omit":
                     continue
-            _set(out, t.path, value)
+            out[t.path] = value
+        if carried:
+            out[EXTRAS] = {c: row.get(c) for c in carried if row.get(c) not in (None, "", [])}
         if errors:
             result.rejected.append({"row": i, "errors": errors})
         else:
-            result.records.append(out)
+            flat_rows.append((i, out))
+    grouped = bool(expected.group_by or expected.groups)
+    if grouped:
+        result.items, more = _group(flat_rows, expected)
+        result.rejected = sorted(result.rejected + more, key=lambda r: r["row"])
+    else:
+        result.items = [flat for _, flat in flat_rows]
+    result.records = [nest(item, expected) for item in result.items]
     result.report = {
         "recipe": recipe["recipe"], "approved_by": recipe["approval"]["by"], "sha256": recipe["approval"]["sha256"],
         "expected": expected.id, "source": rows.source, "rows": len(rows.rows),
@@ -180,4 +251,10 @@ def run(rows: Rows, recipe: dict, expected: Expected) -> Result:
         "empty_fields": {k: v for k, v in empty.items() if v},
         "errors": [{"row": r["row"], **e} for r in result.rejected for e in r["errors"]],
     }
+    if grouped:
+        result.report["accepted"] = len(rows.rows) - len(result.rejected)
+        result.report["items"] = len(result.items)
+    if extras:   # unmatched source fields: what went through and what was dropped, and by whom (C9)
+        result.report["custom_fields"] = {"carried": list(carried), "dropped": list(extras.get("drop") or []),
+                                          "by": extras.get("by")}
     return result

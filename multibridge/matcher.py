@@ -1,9 +1,11 @@
 """Rules proposer: the offline fallback that drafts a recipe when no local model is available.
 
-For every target field it scores every source column on concept evidence (standard
-HL7/FHIR position, name, description, values), role (patient vs doctor), type and unit;
-assigns greedily one-to-one; and works out the transforms. The local Qwen proposer
-(docs/ROADMAP.md, phase 2) produces the same recipe shape.
+For every target field it scores every source column on concept evidence from the
+destination's domain pack (standard position, name, description, values), role (the record's
+subject vs someone else), type and unit; assigns greedily one-to-one; and works out the
+transforms. The pack adds its domain's special cases through hooks (packs/__init__.py).
+With no pack, names are the evidence. The local Qwen proposer (docs/ROADMAP.md, phase 2)
+produces the same recipe shape.
 
 Scores are hand-weighted rules, NOT probabilities (recipe.CONFIDENCE_KIND).
 """
@@ -12,8 +14,8 @@ from __future__ import annotations
 
 import re
 
-from . import recipe
-from .concepts import CONCEPTS, NAME_PARTS, Evidence, _flat, evidence, translate, words
+from . import packs, recipe
+from .concepts import Evidence, _flat, evidence, words
 from .expected import Expected, Target
 from .model import Field
 from .records import Rows
@@ -24,7 +26,7 @@ DATE_FORMATS = {"dd/mm/yyyy": "%d/%m/%Y", "dd-mm-yyyy": "%d-%m-%Y", "dd.mm.yyyy"
 UNIT_FACTORS = {("g", "kg"): 0.001, ("lb", "kg"): 0.45359237, ("m", "cm"): 100, ("mm", "cm"): 0.1}
 TYPE_OK = {"date": {"date", "datetime"}, "number": {"integer", "decimal"}, "integer": {"integer"},
            "boolean": {"boolean"}}
-OBSERVATION_VALUES = {"OBX-5", "valueQuantity.value", "valueString", "valueCodeableConcept.text"}
+NAME_MATCH = 0.75   # with no concept for the target, a name this similar is evidence on its own
 
 
 def _bigrams(s: str) -> list[str]:
@@ -44,7 +46,7 @@ def dice(a: str, b: str) -> float:
     return 2 * common / (len(A) + len(B))
 
 
-def score(f: Field, ev: Evidence, t: Target) -> tuple[float, list[str]]:
+def score(f: Field, ev: Evidence, t: Target, pack=packs.NONE) -> tuple[float, list[str]]:
     why: list[str] = []
     w = ev.weights.get(t.concept, 0) if t.concept else 0
     if w:
@@ -52,18 +54,24 @@ def score(f: Field, ev: Evidence, t: Target) -> tuple[float, list[str]]:
         why.append(ev.reasons[t.concept])
     else:
         sim = dice(words(f.label).strip(), words(t.leaf).strip())
-        s = 0.45 * sim
-        if sim > 0.5:
-            why.append("nombre parecido")
-    others = [v for k, v in ev.weights.items() if k != t.concept and not (t.concept == "medico" and k in NAME_PARTS)]
+        if t.concept is None and sim >= NAME_MATCH:   # no vocabulary knows the target: the name is the evidence
+            s = 0.55 + 0.35 * sim
+            why.append("mismo nombre" if sim == 1 else "nombre casi igual")
+        else:
+            s = 0.45 * sim
+            if sim > 0.5:
+                why.append("nombre parecido")
+    ignored = pack.ignored_rivals(t.concept)
+    others = [v for k, v in ev.weights.items() if k != t.concept and k not in ignored]
     if others:
         s -= 0.1 * max(others)
-    if ev.role != (CONCEPTS[t.concept].role if t.concept in CONCEPTS else "patient"):
+    if ev.role != pack.role_of(t.concept):
         s -= 0.35
         why.append(f"pertenece a otra persona ({ev.role})")
-    if f.kind == "clinical_concept" and t.concept != "diagnostico":
-        s -= 0.3   # the messy Excel's "Diagnóstico principal" (documented as "texto libre del médico") is not a doctor
-        why.append("la columna contiene diagnósticos")
+    for delta, reason in pack.score_adjust(f, ev, t):
+        s += delta
+        if reason:
+            why.append(reason)
     if f.dtype == "empty":
         s -= 0.5
     elif t.type in TYPE_OK and f.dtype not in TYPE_OK[t.type]:
@@ -75,8 +83,9 @@ def score(f: Field, ev: Evidence, t: Target) -> tuple[float, list[str]]:
     return max(0.0, min(0.99, round(s, 3))), why
 
 
-def transforms_for(rows: Rows, cols: list[str], t: Target) -> tuple[list[dict], list[str], bool]:
+def transforms_for(rows: Rows, cols: list[str], t: Target, pack=None) -> tuple[list[dict], list[str], bool]:
     """(transforms, issues, needs_human) to turn these source columns into the target's type and format."""
+    pack = pack or packs.NONE
     out: list[dict] = []
     issues: list[str] = []
     pending = False
@@ -88,13 +97,28 @@ def transforms_for(rows: Rows, cols: list[str], t: Target) -> tuple[list[dict], 
         out.append({"op": "join_columns", "sep": " "})
     if t.type == "date" and f.format in DATE_FORMATS:
         out.append({"op": "date", "from": DATE_FORMATS[f.format]})
+    elif t.type == "date" and f.format == "mixed":
+        tried = list(dict.fromkeys(DATE_FORMATS.get(x, "%Y-%m-%d" if x == "yyyy-mm-dd" else None)
+                                   for x in f.formats or []))
+        if None in tried:
+            pending = True
+            issues.append(f"formatos de fecha no reconocidos: {', '.join(f.formats)}")
+        elif len(tried) == 1:
+            out.append({"op": "date", "from": tried[0]})
+        else:
+            out.append({"op": "date", "from": tried})
+            issues.append(f"la columna mezcla formatos de fecha ({', '.join(f.formats)}): se prueban por orden")
     if t.type in ("number", "integer"):
         out.append({"op": "number", "decimal": ","} if f.format == "decimal comma" else {"op": "number"})
         if t.unit and f.unit and (f.unit, t.unit) in UNIT_FACTORS:
             out.append({"op": "scale", "factor": UNIT_FACTORS[(f.unit, t.unit)]})
             issues.append(f"se convierte {f.unit} → {t.unit}")
+        elif t.unit and not f.unit and (guess := pack.unit_from_values(flat, t.unit)) \
+                and (guess, t.unit) in UNIT_FACTORS:
+            out.append({"op": "scale", "factor": UNIT_FACTORS[(guess, t.unit)]})
+            issues.append(f"los valores parecen estar en {guess}, no en {t.unit}: se convierten (revisar)")
     if t.enum is not None:
-        tr = translate(t.concept, flat)
+        tr = pack.translate(t.concept, flat, t.enum)
         changes = {k: v for k, v in sorted(tr.items()) if v is not None and v != k}
         untranslated = sorted(k for k, v in tr.items() if v is None and k not in t.enum)
         if changes:
@@ -113,49 +137,67 @@ def transforms_for(rows: Rows, cols: list[str], t: Target) -> tuple[list[dict], 
     if m and f.dtype == "integer":
         out.append({"op": "pad", "width": int(m.group(1))})
 
-    # OBX-5 / Observation.value hold weight in one row and height in another; the code says which.
-    if f.path in OBSERVATION_VALUES or (f.entity in ("OBX", "Observation") and "value" in f.path.lower()):
+    if mixed := pack.mixed_column(f):   # different measurements in different records: needs a code filter
         pending = True
-        issues.append("valor de observación: depende del código (OBX-3 / Observation.code); "
-                      "hace falta filtrar por código, aún no soportado")
+        issues.append(mixed)
 
-    if any(isinstance(v, list) for v in values):
+    if len(cols) == 1 and any(isinstance(v, list) for v in values):   # join_columns already takes one per column
         if t.multiple == "join":
             out.append({"op": "join_values", "sep": "; "})
+        elif (sep := pack.joins_values(t, f.path)) is not None:
+            out.append({"op": "join_values", "sep": sep})        # several values that are one value
         else:
             out.append({"op": "first"})
             issues.append("hay varios valores en origen: se toma el primero")
+            if first := pack.first_value_issues(t):
+                pending = True
+                issues += first
     return out, issues, pending
 
 
-def _composite_name(rows: Rows, evs: dict[str, Evidence], t: Target) -> tuple[str, str] | None:
-    """A doctor's full name split into given/family components (HL7 PV1-7.3 + PV1-7.2)."""
-    if t.concept != "medico":
-        return None
-    people = [c for c, f in rows.columns.items() if evs[c].role == "practitioner" and "." in f.path]
-    for given in (c for c in people if evs[c].weights.get("nombre", 0) >= 0.9):
-        parent = rows.columns[given].path.rsplit(".", 1)[0]
-        family = next((c for c in people if rows.columns[c].entity == rows.columns[given].entity
-                       and rows.columns[c].path.rsplit(".", 1)[0] == parent
-                       and evs[c].weights.get("apellidos", 0) >= 0.9), None)
-        if family:
-            return given, family
-    return None
+def evidences(rows: Rows, pack) -> dict[str, Evidence]:
+    return {c: evidence(f, rows.values(c), pack) for c, f in rows.columns.items()}
 
 
-def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
+def candidates(rows: Rows, expected: Expected, evs: dict[str, Evidence] | None = None
+               ) -> list[tuple[float, str, tuple[str, ...], list[str]]]:
+    """Every (score, target, columns, reasons) pair, best first. Also feeds the review screen's dropdowns."""
+    pack = packs.get(expected.pack)
     usable = [c for c, f in rows.columns.items() if f.dtype != "empty"]
-    evs = {c: evidence(f, rows.values(c)) for c, f in rows.columns.items()}
+    evs = evs or evidences(rows, pack)
+    multiple = {c: any(isinstance(v, list) for v in rows.values(c)) for c in rows.columns}
 
     pairs: list[tuple[float, str, tuple[str, ...], list[str]]] = []
     for t in expected.targets:
         for c in usable:
-            s, why = score(rows.columns[c], evs[c], t)
+            s, why = score(rows.columns[c], evs[c], t, pack)
+            # Prefer one clean value per record: a column with several (two IDs in one field) needs a rule,
+            # and a selector column (X [type=Y]) usually gives the clean one. Mostly empty columns lose a
+            # little, so a selector that only covers some rows doesn't beat its complete base column.
+            if multiple[c] and t.multiple != "join" and pack.joins_values(t, c) is None:
+                s -= 0.1
+            s = round(s - 0.2 * rows.columns[c].null_ratio, 3)
             pairs.append((s, t.path, (c,), why))
-        combo = _composite_name(rows, evs, t)
-        if combo:
-            pairs.append((0.82, t.path, combo, ["nombre y apellidos del médico en columnas separadas: se unen"]))
+        for s, combo, why in pack.composites(rows, evs, t):
+            pairs.append((s, t.path, combo, [why]))
     pairs.sort(key=lambda p: -p[0])
+    return pairs
+
+
+def ranking(rows: Rows, expected: Expected, top: int = 12) -> dict[str, list[dict]]:
+    """Per target, the best candidate columns with their score: what a reviewer can switch to."""
+    out: dict[str, list[dict]] = {t.path: [] for t in expected.targets}
+    for s, target, cols, why in candidates(rows, expected):
+        if len(out[target]) < top:
+            out[target].append({"from": list(cols), "confidence": s, "why": why})
+    return out
+
+
+def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
+    pack = packs.get(expected.pack)
+    usable = [c for c, f in rows.columns.items() if f.dtype != "empty"]
+    evs = evidences(rows, pack)
+    pairs = candidates(rows, expected, evs)
 
     chosen: dict[str, tuple[float, tuple[str, ...], list[str]]] = {}
     used: set[str] = set()
@@ -170,7 +212,16 @@ def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
     for t in expected.targets:
         if t.path in chosen:
             s, cols, why = chosen[t.path]
-            transforms, issues, pending = transforms_for(rows, list(cols), t)
+            transforms, issues, pending = transforms_for(rows, list(cols), t, pack)
+            # A near-tie with another free column (home vs mobile phone) is a human's call, not a coin toss.
+            rival = next((p for p in pairs if p[1] == t.path and p[2] != cols and not set(p[2]) & set(cols)
+                          and not used & (set(p[2]) - set(cols)) and p[0] >= THRESHOLD and s - p[0] < 0.02), None)
+            if rival:
+                pending = True
+                issues.append(f"empate con {' + '.join(rival[2])}: elegir cuál")
+            if more := pack.chosen_issues(t, list(cols), evs):
+                pending = True
+                issues += more
             for c in cols:
                 if evs[c].kinds.get(t.concept) == "values":
                     issues.append("deducido solo por los valores: revisar")
@@ -181,9 +232,11 @@ def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
                               "issues": list(dict.fromkeys(issues))}
         else:
             best = sorted((p for p in pairs if p[1] == t.path and p[0] > 0.2), key=lambda p: -p[0])[:3]
-            fields[t.path] = {"status": "pending" if t.required else "no_data", "from": [], "transforms": [],
-                              "confidence": None, "why": ["ninguna columna de origen supera el umbral"],
-                              "issues": ["obligatorio: hay que asignar un origen o un valor por defecto"]
-                              if t.required else [],
+            issues = ["obligatorio: hay que asignar un origen o un valor por defecto"] if t.required else []
+            hints = pack.no_data_issues(rows, usable, t, evs)   # the data may be there, just not usable as is
+            issues += hints
+            fields[t.path] = {"status": "pending" if t.required or hints else "no_data", "from": [],
+                              "transforms": [], "confidence": None,
+                              "why": ["ninguna columna de origen supera el umbral"], "issues": issues,
                               "candidates": [{"column": p[2][0], "confidence": p[0]} for p in best]}
     return recipe.new(name or rows.source.rsplit(".", 1)[0], rows, expected, fields, proposed_by="rules")
