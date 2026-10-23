@@ -1,4 +1,4 @@
-"""Multi Bridge: map any hospital format onto the shape your application expects."""
+"""Multi Bridge: translate data from any format into the shape another application expects."""
 
 from .model import Dataset, Field
 from .parsers import load

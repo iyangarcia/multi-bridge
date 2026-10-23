@@ -1,14 +1,16 @@
 """Command line.
 
-    multibridge inspect examples/huca_oviedo_hl7v23.hl7
-    multibridge inspect examples/hospital_c_messy.xlsx --as-ai
-    multibridge terms "DM2 mal controlada" "sospecha de NAC" "IRA" "DiabA"
+    multibridge inspect FILE
+    multibridge inspect FILE --as-ai                  # only what would be sent to the AI
+    multibridge terms "TEXT" ...                      # the destination pack's terminology on free text
 
-    multibridge expected                                         # what the destination wants (from its example)
-    multibridge map examples/huca_oviedo_hl7v23.hl7              # local Qwen proposes a recipe (or reuse an approved one)
-    multibridge map examples/huca_oviedo_hl7v23.hl7 --model rules   # offline rules instead of the model
-    multibridge approve recipes/drafts/huca_oviedo_hl7v23.json --by "Nombre"
-    multibridge map examples/huca_oviedo_hl7v23.hl7              # same structure: applied without proposing again
+    multibridge expected                              # what the destination wants (from its example)
+    multibridge map FILE                              # local Qwen proposes a recipe (or reuse an approved one)
+    multibridge map FILE --model rules                # offline rules instead of the model
+    multibridge approve recipes/drafts/NAME.json --by "Nombre"
+    multibridge map FILE                              # same structure: applied without proposing again
+
+The destination is the only `expected/*.example.json`, or the one given with --expected.
 """
 
 from __future__ import annotations
@@ -18,18 +20,24 @@ import json
 import sys
 from pathlib import Path
 
-from . import recipe as recipes
+from . import formats, packs, recipe as recipes
 from .engine import run
-from .expected import Expected
+from .expected import Expected, default_destination
 from .ai.ollama import OllamaUnavailable
 from .parsers import load
 from .proposer import propose
 from .profile import as_ai
 from .records import to_rows
-from .terms import get_normalizer
 
-DEFAULT_EXPECTED = "expected/cdss_paciente.example.json"
-FORMATS = {"csv": "CSV", "excel": "Excel", "fhir": "HL7 FHIR", "json": "JSON", "hl7v2": "HL7 v2"}
+def _label(fmt: str) -> str:
+    try:
+        return formats.get(fmt).label
+    except formats.UnsupportedFormat:
+        return fmt
+
+
+def _destination(args) -> Expected:
+    return Expected.load(args.expected or default_destination())
 
 
 def _short(s: str, n: int) -> str:
@@ -47,7 +55,7 @@ def cmd_inspect(args) -> int:
                           "fields": [f.to_dict() for f in ds.fields]}, ensure_ascii=False, indent=2))
         return 0
 
-    print(f"{ds.source}  ·  {FORMATS.get(ds.format, ds.format)}  ·  {len(ds.tables)} entidad(es)")
+    print(f"{ds.source}  ·  {_label(ds.format)}  ·  {len(ds.tables)} entidad(es)")
     for note in ds.notes:
         print(f"  ! {note}")
     for entity, rows in ds.tables.items():
@@ -80,7 +88,11 @@ def cmd_inspect(args) -> int:
 
 
 def cmd_terms(args) -> int:
-    normalizer = get_normalizer(args.normalizer)
+    pack = packs.get(args.pack or _destination(args).pack)
+    normalizer = pack.normalizer(args.normalizer)
+    if normalizer is None:
+        print(f"el pack {pack.name!r} no tiene terminología", file=sys.stderr)
+        return 1
     out = []
     for text in args.text:
         matches = normalizer.normalize(text)
@@ -135,7 +147,7 @@ def _light(confidence) -> str:
 
 def print_recipe(r: dict) -> None:
     src = r["source"]
-    print(f"Propuesta para {src['file']} ({FORMATS.get(src['format'], src['format'])}) → {r['expected']}")
+    print(f"Propuesta para {src['file']} ({_label(src['format'])}) → {r['expected']}")
     print(f"Confianza: {r['confidence_kind']}\n")
     marks = {"mapped": "✓", "no_data": "–", "pending": "!"}
     for target, f in r["fields"].items():
@@ -152,15 +164,24 @@ def print_recipe(r: dict) -> None:
         print(f"\nColumnas de origen sin usar ({len(r['unmatched'])}): {_short(', '.join(r['unmatched']), 200)}")
 
 
-def _write_output(result, file: str, out_dir: str) -> Path:
+def _write_output(result, file: str, out_dir: str, expected: Expected) -> Path:
+    """The output in the destination's own format, checked by its plug-in, plus the run report."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     stem = Path(file).stem
-    (out / f"{stem}.json").write_text(json.dumps(result.records, ensure_ascii=False, indent=2) + "\n",
-                                      encoding="utf-8")
+    fmt = formats.get(expected.format)
+    data = result.write(expected)
+    target = out / f"{stem}{fmt.extension}"
+    target.write_bytes(data)
+    problems = fmt.check(data)
+    if problems:
+        result.report["output_problems"] = problems
+        print(f"La salida no supera la comprobación de {fmt.label}:", file=sys.stderr)
+        for pr in problems[:10]:
+            print(f"  {pr}", file=sys.stderr)
     (out / f"{stem}.report.json").write_text(json.dumps(result.report, ensure_ascii=False, indent=2) + "\n",
                                              encoding="utf-8")
-    return out / f"{stem}.json"
+    return target
 
 
 def _print_run(result, path: Path) -> int:
@@ -176,7 +197,7 @@ def _print_run(result, path: Path) -> int:
 
 
 def cmd_expected(args) -> int:
-    e = Expected.load(args.expected)
+    e = _destination(args)
     print(f"{e.id}  ({len(e.targets)} campos)")
     for t in e.targets:
         extra = [x for x in ("obligatorio" if t.required else "",
@@ -188,7 +209,7 @@ def cmd_expected(args) -> int:
 
 
 def cmd_map(args) -> int:
-    expected = Expected.load(args.expected)
+    expected = _destination(args)
     rows = to_rows(load(args.file))
     found = recipes.find(args.recipes, rows, expected)
     if found:
@@ -197,7 +218,7 @@ def cmd_map(args) -> int:
         print(f"Ya conozco este formato: receta '{r['recipe']}' ({path}), aprobada por {a['by']} el {a['at']}.")
         print("Se aplica sin volver a proponer. El motor valida cada registro.\n")
         result = run(rows, r, expected)
-        return _print_run(result, _write_output(result, args.file, args.out))
+        return _print_run(result, _write_output(result, args.file, args.out, expected))
     if args.model != "rules":
         print(f"Pidiendo propuesta al modelo local ({args.model})…")
     try:
@@ -225,10 +246,10 @@ def cmd_map(args) -> int:
 
 
 def cmd_approve(args) -> int:
-    expected = Expected.load(args.expected)
+    expected = _destination(args)
     draft_path = Path(args.draft)
     try:
-        approved = recipes.approve(recipes.load(draft_path), expected, args.by)
+        approved = recipes.approve(recipes.load(draft_path), expected, args.by, carry=args.carry)
     except recipes.ApprovalError as e:
         print("No se puede aprobar:")
         for p in e.problems:
@@ -242,12 +263,17 @@ def cmd_approve(args) -> int:
     print(f"Aprobada por {approved['approval']['by']} → {path}")
     if changed:
         print(f"Campos cambiados respecto a la propuesta: {', '.join(changed)}")
+    extras = approved["extras"]
+    if extras["carry"]:
+        print(f"Se llevan como campo extra: {', '.join(extras['carry'])}")
+    if extras["drop"]:
+        print(f"Se descartan ({len(extras['drop'])}, anotado): {_short(', '.join(extras['drop']), 160)}")
     print(f"Huella: {approved['approval']['sha256'][:16]}… (si se edita, hay que volver a aprobarla)")
     return 0
 
 
 def cmd_run(args) -> int:
-    expected = Expected.load(args.expected)
+    expected = _destination(args)
     rows = to_rows(load(args.file))
     r = recipes.load(args.recipe)
     why = recipes.compatible(r, rows, expected)
@@ -261,7 +287,13 @@ def cmd_run(args) -> int:
     except recipes.ApprovalError as e:
         print(f"No se ejecuta: {e}")
         return 1
-    return _print_run(result, _write_output(result, args.file, args.out))
+    return _print_run(result, _write_output(result, args.file, args.out, expected))
+
+
+def cmd_serve(args) -> int:
+    from .api import serve
+    serve(Path(args.root).resolve(), args.port)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -280,14 +312,16 @@ def main(argv: list[str] | None = None) -> int:
     i.add_argument("--json", action="store_true")
     i.set_defaults(func=cmd_inspect)
 
-    t = sub.add_parser("terms", help="normalize clinical text to codes")
+    t = sub.add_parser("terms", help="normalize free text to codes with a domain pack's terminology")
     t.add_argument("text", nargs="+")
-    t.add_argument("--normalizer", default="lexical")
+    t.add_argument("--pack", help="domain pack (default: the destination's)")
+    t.add_argument("--expected", help="example of the destination output")
+    t.add_argument("--normalizer", help="the pack's normalizer (default: its first)")
     t.add_argument("--json", action="store_true")
     t.set_defaults(func=cmd_terms)
 
     def with_expected(sp):
-        sp.add_argument("--expected", default=DEFAULT_EXPECTED, help="example of the destination output")
+        sp.add_argument("--expected", help="example of the destination output (default: the only one in expected/)")
         return sp
 
     e = with_expected(sub.add_parser("expected", help="show the destination fields read from its example"))
@@ -304,6 +338,8 @@ def main(argv: list[str] | None = None) -> int:
     a = with_expected(sub.add_parser("approve", help="approve a draft recipe (a person signs it)"))
     a.add_argument("draft")
     a.add_argument("--by", required=True, help="who approves")
+    a.add_argument("--carry", action="append", default=[], metavar="COLUMN",
+                   help="an unused source column to carry through as an extra field (repeatable); the rest are dropped")
     a.add_argument("--recipes", help="where approved recipes go (default: parent of drafts/)")
     a.set_defaults(func=cmd_approve)
 
@@ -312,6 +348,11 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--recipe", required=True)
     r.add_argument("--out", default="out")
     r.set_defaults(func=cmd_run)
+
+    s = sub.add_parser("serve", help="start the review web app on http://127.0.0.1 (this machine only)")
+    s.add_argument("--port", type=int, default=8766)
+    s.add_argument("--root", default=".", help="project folder (with web/, expected/, examples/, recipes/)")
+    s.set_defaults(func=cmd_serve)
 
     args = p.parse_args(argv)
     return args.func(args)

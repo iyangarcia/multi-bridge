@@ -157,6 +157,10 @@ def parse(data: bytes, name: str) -> Dataset:
         records, order = [], {"_message": None}
         for mid, f in occurrences:
             rec: dict = {"_message": mid}
+            # Each repetition kept whole, so components stay aligned (PID-3: "12345678Z^^^MIR^NI~NHC-1^^^H^MR"):
+            # records.py uses it to pick a repetition by its type code. Flat paths below drop empty components.
+            rec["_reps"] = {f"{sid}-{n}": [{c: v for c, v in enumerate(rep, start=1) if v} for rep in reps]
+                            for n, reps in f.items() if n in multi}
             for n, reps in sorted(f.items()):
                 for rep in reps:
                     comps = enumerate(rep, start=1) if n in multi else [(0, rep[0])]

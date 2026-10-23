@@ -42,10 +42,16 @@ def test_fhir_allergy_resource_reaches_the_patient_row():
     assert r["fields"]["datos_clinicos.alergia"]["from"] == ["AllergyIntolerance.code.text"]
 
 
-def test_observation_values_need_a_code_filter_and_stay_pending():
-    peso = proposal("hospital_a_diagnosticos.hl7")["fields"]["datos_clinicos.peso_kg"]
-    assert peso["status"] == "pending"
-    assert any("filtrar por código" in i for i in peso["issues"])
+def test_observation_values_are_picked_by_their_loinc_code():
+    fields = proposal("hospital_a_diagnosticos.hl7")["fields"]
+    assert fields["datos_clinicos.peso_kg"]["from"] == ["OBX-5 [OBX-3.1=29463-7]"]
+    assert fields["datos_clinicos.altura_cm"]["from"] == ["OBX-5 [OBX-3.1=8302-2]"]
+
+
+def test_identifiers_without_a_type_code_stay_pending():
+    """'NHC-20001^^^HUCA~ASTU123456^^^SESPA': two identifiers and no PID-3.5 to tell them apart."""
+    pid = proposal("hospital_a_diagnosticos.hl7")["fields"]["paciente.id"]
+    assert pid["status"] == "pending" and any("PID-3.5" in i for i in pid["issues"])
 
 
 def test_every_target_appears_and_unused_columns_are_listed():
