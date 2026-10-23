@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Destinos · Multi Bridge</title>
+  <link rel="icon" href="img/icono.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="cabecera">
+    <a class="marca" href="index.html">
+      <img src="img/icono.png" alt="">
+      <span>MULTI <b>BRIDGE</b></span>
+    </a>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="mapeador.html">Traducir datos</a>
+      <a href="modelos.html" class="activo">Destinos</a>
+    </nav>
+  </header>
+
+  <main class="pagina">
+    <div class="pagina-cab">
+      <div>
+        <h1>Destino: <span id="v-nombre"></span></h1>
+        <div class="sub">Así quiere recibir los datos quien los usa. Cualquier origen se traduce a esta ficha.</div>
+      </div>
+      <div class="fila-botones">
+        <a class="boton" href="mapeador.html">Traducir datos →</a>
+      </div>
+    </div>
+
+    <section id="vista-modelo">
+      <div class="ficha-modelo" id="v-campos"></div>
+      <div class="leyenda-modelo"><span class="imprescindible-punto"></span> imprescindible · se entrega en <span id="v-formato"></span> · <span id="v-id"></span></div>
+    </section>
+
+    <details class="plegable probar">
+      <summary>Cómo se define</summary>
+      <div class="sub">
+        Un destino sale de un <b>ejemplo</b> de cómo quieres los datos, en su propio formato (JSON, CSV, Excel, XML,
+        FHIR…: <code>expected/&lt;nombre&gt;.example.&lt;ext&gt;</code>), más unas <b>reglas</b> opcionales que un
+        ejemplo no puede mostrar: qué es obligatorio, valores permitidos, unidades, por qué campo agrupar
+        (<code>expected/&lt;nombre&gt;.rules.json</code>). La salida se escribe como el ejemplo: mismo anidamiento,
+        mismas fechas y decimales. Si cambias cualquiera de los dos, las recetas aprobadas para la versión anterior
+        dejan de aplicarse solas y hay que revisarlas de nuevo.
+      </div>
+    </details>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/comun.js"></script>
+  <script src="js/modelos.js"></script>
+</body>
+</html>

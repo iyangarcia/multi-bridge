@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi Bridge</title>
+  <link rel="icon" href="img/icono.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="cabecera">
+    <a class="marca" href="index.html">
+      <img src="img/icono.png" alt="">
+      <span>MULTI <b>BRIDGE</b></span>
+    </a>
+    <nav>
+      <a href="index.html" class="activo">Inicio</a>
+      <a href="mapeador.html">Traducir datos</a>
+      <a href="modelos.html">Destinos</a>
+    </nav>
+  </header>
+
+  <main class="inicio">
+    <section class="panel-cab">
+      <div class="panel-id">
+        <img src="img/logo.png" alt="Multi Bridge">
+        <div>
+          <h1>Tu instalación</h1>
+          <div class="sub" id="p-sub">Funciona en este equipo · los datos no salen de aquí</div>
+        </div>
+      </div>
+      <a class="boton" href="mapeador.html">+ Traducir datos</a>
+    </section>
+
+    <section class="tarjeta-panel">
+      <div class="tarjeta-panel-cab">
+        <h2>Tus conexiones</h2>
+        <span class="sub" id="p-resumen"></span>
+      </div>
+      <div class="diagrama" id="diagrama" aria-label="Cómo viajan los datos">
+        <svg class="cables" id="cables" aria-hidden="true"></svg>
+        <div class="hospitales" id="p-hospitales"></div>
+        <div class="puente" id="p-puente">
+          <div class="puente-icono"><img src="img/icono.png" alt=""></div>
+          <strong>Multi Bridge<small>propone, tú das el visto bueno</small></strong>
+        </div>
+        <div class="app-destino" id="p-app"></div>
+      </div>
+    </section>
+
+    <section class="tarjeta-panel">
+      <div class="tarjeta-panel-cab">
+        <h2>Recetas aprobadas</h2>
+        <span class="sub">Se reutilizan solas cuando llega un archivo con la misma estructura</span>
+      </div>
+      <div id="p-actividad"></div>
+    </section>
+  </main>
+
+  <footer class="pie">Nacido en el Hackathon TalentUO 2026 (Reto 5) · Grupo 5 · datos de ejemplo sintéticos</footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/comun.js"></script>
+  <script src="js/inicio.js"></script>
+</body>
+</html>
