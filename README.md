@@ -1,15 +1,24 @@
-# Multi Bridge — universal healthcare data mapper
+# Multi Bridge — a data translator from any format to any format
 
 > Show it one example of how you want your data. It maps the rest, a human approves, and a
 > deterministic engine does the transformation.
 
-Started at **Hackathon TalentUO 2026** (Reto 5, Pragmatech AI Solutions, Grupo 5). The challenge is
-to connect one clinical application to three hospitals that speak HL7 v2.3, HL7 FHIR and Excel,
-**without writing one integration per hospital**.
+Started at **Hackathon TalentUO 2026** (Reto 5, Pragmatech AI Solutions, Grupo 5). The challenge was to connect one clinical
+application to three hospitals that speak HL7 v2.3, HL7 FHIR and Excel, **without writing one
+integration per hospital**.
 
-## Why this is harder than renaming columns
+The project is now becoming a **translator for any type of data** (docs/ROADMAP.md, section 2a):
 
-Mapping `F. Nacimiento` → `birthDate` is the easy part. Real hospital data breaks in three ways:
+- **A generic core** knows formats and structure only.
+- **Format plug-ins** (`multibridge/formats/`) read, write and check each format.
+- **Domain packs** (`multibridge/packs/`) say what a domain's data means. Healthcare is the first
+  pack, and everything below is what it does today.
+
+A destination without a pack still works, matching on names, types and formats.
+
+## Why this is harder than renaming columns (the clinical pack)
+
+Mapping `F. Nacimiento` → `birthDate` is the easy part. Real hospital data breaks in many ways:
 
 | Problem | Example | What this repo does |
 |---|---|---|
@@ -21,6 +30,7 @@ Mapping `F. Nacimiento` → `birthDate` is the easy part. Real hospital data bre
 | **Human-made Excel** | title rows, merged group headers, footers, 2 tables per sheet, comments, formulas | finds the real table, builds `Antropometría / Peso (kg)` labels, reads comments as field docs |
 | **Same word, different person** | HL7 `PV1-7.2` is the *doctor's* surname, `PID-5.1` the patient's | role-aware matching: never maps the doctor onto the patient |
 | **Undocumented fields** | a `ZPA` segment holding `A+`, `58.5`, `164` with no documentation | recognises blood group / weight / height from the values, and flags it "deducido solo por los valores: revisar" |
+| **Repeated structures** | HL7 `PID-3` with DNI and NHC as repetitions; weight and height in `OBX` rows or FHIR Observations | selector columns pick by code: `PID-3.1 [PID-3.5=MR]`, `OBX-5 [OBX-3.1=29463-7]` (LOINC), with the unit from `OBX-6` |
 | **Conventions** | `M` = *mujer* (H/M) or *male* (M/F); `0+` vs `O+`; `62,4`; `600777888` | translates by convention, leaves a lone `M` for a human, validates against the destination rules |
 
 ## How it works (the hackathon flow)
@@ -44,7 +54,8 @@ Mapping `F. Nacimiento` → `birthDate` is the easy part. Real hospital data bre
 
 Every format becomes the same `Field` list and then the same flat rows. Nothing after
 `records.py` knows whether the data came from HL7 or Excel: that is the "no integration per
-hospital" claim, expressed in code.
+hospital" claim, expressed in code. What a record is, and which tables join into it, comes
+from the format plug-in; what the fields mean comes from the destination's pack.
 
 ## Try it
 
@@ -57,7 +68,42 @@ multibridge terms "DM2 mal controlada" "sospecha de NAC" "AP de IAM; HTA" "IRA" 
 pytest
 ```
 
-### Map a hospital file onto the destination
+### The review web app
+
+```bash
+multibridge serve            # then open http://127.0.0.1:8766
+```
+
+Your team's hackathon site, now wired to the real pipeline:
+1. pick the source (any format) and the destination: one from `expected/`, a synthetic one, or
+   upload an example of the output (plus its `.rules.json` if it has one)
+2. choose who proposes (rules, or local `qwen3:8b` / `qwen3:30b`)
+3. review each field with a before → after preview from the engine, its reasons and warnings,
+   and decide which unused source columns to carry through
+4. sign with your name, approve, and download the data in the destination's format, checked
+
+**"Lo que ve la IA"** shows, next to your real values, exactly what the model receives. The server
+listens on 127.0.0.1 only, and uploads stay in memory.
+
+### Any destination: show an example of the output
+
+The destination is an **example of the output in its own format**: `expected/<name>.example.json`
+(the original), or a CSV, Excel, XML or FHIR file. `examples/destinos/` has three synthetic ones.
+The output is written like the example: same columns or nesting, same date and decimal style, the
+same fixed values (a FHIR Bundle's systems, codes and statuses). An optional `<name>.rules.json`
+adds what an example can't show: required fields, allowed values, `"$pack"`, and `"$group_by"` to
+turn many rows into one item (order lines → one order with its lines).
+
+```bash
+multibridge map examples/huca_oviedo_hl7v23.hl7 --model rules --expected examples/destinos/paciente_fhir.example.json
+multibridge approve recipes/drafts/huca_oviedo_hl7v23.json --by "Your name" --carry ZPA-2 --expected examples/destinos/paciente_fhir.example.json
+```
+
+At approval every unused source column is either **carried** (`--carry`, or "Llevar" in the web
+app) into the destination's slot for extras (a FHIR extension, an extra column, an XML element)
+or **dropped**, and the recipe records which and who decided.
+
+### Map a hospital file onto the destination (command line)
 
 ```bash
 multibridge expected                                   # fields read from expected/cdss_paciente.example.json
@@ -80,7 +126,7 @@ multibridge map examples/huca_oviedo_hl7v23.hl7        # same structure: reuses 
 The same destination example and the same code map the CSV (Hospital C), the FHIR API
 (Hospital B) and the HL7 v2.3 feed (Hospital A). `tests/test_golden.py` checks the proposal and
 every output record for all three. The confidence numbers are hand-weighted rules, **not
-probabilities**, until they are calibrated (roadmap phase 5).
+probabilities**, until they are calibrated (roadmap phase 9).
 
 ```
 DM2 mal controlada
@@ -99,58 +145,77 @@ DiabA
 
 | Path | What |
 |---|---|
-| `multibridge/parsers/` | read: `hl7v2` (no dependency), `fhir` (+ NDJSON, plain JSON), `csv_`, `excel`, `table` (finds tables in messy grids) |
-| `multibridge/model.py` | `Dataset` and `Field`: the shape every parser produces |
-| `multibridge/profile.py` | per field: type, format, unit, sensitive data; `as_ai()` = what the AI may see |
-| `multibridge/terms/` | diagnosis text → ICD-10 (qualifiers, abbreviations, ambiguity), `Normalizer` interface |
-| `multibridge/records.py` | one flat row per patient (all joins happen here) |
-| `multibridge/expected.py` | destination fields from an example output + optional rules overlay |
+| `multibridge/formats/` | **format plug-ins**: reader, destination (targets + template from an example), writer, checker, what one record is, which structures repeat by code. CSV, Excel, JSON, XML, FHIR (all read and write), HL7 v2 (read) |
+| `multibridge/output.py` | the output item shared by the engine and the writers (groups, extras, rendering like the example) |
+| `multibridge/parsers/` | the readers behind them: `hl7v2` (no dependency), `fhir` (+ NDJSON, plain JSON), `csv_`, `excel`, `table` (finds tables in messy grids) |
+| `multibridge/packs/` | **domain packs**: vocabulary, personal-data hints, code tables, terminology, special cases. `packs/clinical/` holds all the healthcare knowledge, including `terms/` (diagnosis text → ICD-10) |
+| `multibridge/model.py` | `Dataset` and `Field`: the shape every reader produces |
+| `multibridge/profile.py` | per field: type, format, unit, personal data (core detectors + every installed pack's); `as_ai()` |
+| `multibridge/records.py` + `selectors.py` | one flat row per record (all joins happen here), plus selector columns that pick a repetition or row by its code |
+| `multibridge/expected.py` | destination fields from an example of the output in any format + optional rules overlay (`"$pack"`, `"$group_by"`...) |
 | `multibridge/aiview.py` | what the model may see: masked samples, number summaries, cleared categories only (default deny) |
 | `multibridge/proposer.py` + `ai/ollama.py` | local AI proposer: prompt, JSON schema of real columns, checks on the reply, second pass with thinking, rules fallback. Loopback only |
-| `multibridge/concepts.py` + `matcher.py` | rules proposer (offline fallback) and the format rules the AI proposer reuses |
+| `multibridge/concepts.py` + `matcher.py` | rules proposer (offline fallback): evidence from the pack's vocabulary, or names when there's no pack, and the format rules the AI proposer reuses |
 | `multibridge/recipe.py` | draft → approved recipe, hash, who changed what, reuse by structure |
-| `multibridge/engine.py` | applies a recipe row by row with fixed transforms and validates the result |
+| `multibridge/engine.py` | applies a recipe row by row with fixed transforms, validates, groups rows into items, carries extras; `Result.write()` gives the destination file |
+| `multibridge/api.py` + `web/` | local API (loopback only) and the review web app, adapted from the hackathon site (Grupo 5), client branding removed |
 | `expected/` | `cdss_paciente.example.json` (the hackathon's `destino_expected.json`) + `.rules.json` |
 | `examples/` | synthetic data for the 3 hospitals plus messy variants (`build_examples.py` regenerates them) |
 | `tests/` | per area, plus the 3-hospital golden test (`tests/golden/`). The AI tests use a fake model, so no Ollama is needed |
 | `scripts/eval_proposer.py` | rules vs local models against the reviewed plans → [docs/EVAL.md](docs/EVAL.md) |
+| `examples/hard/` + `scripts/hard_data.py` | five hard files rendered from the same invented patients, with known answers → [docs/HARD_DATA.md](docs/HARD_DATA.md) |
 | `docs/` | [ROADMAP](docs/ROADMAP.md) (start here), [COMPLIANCE](docs/COMPLIANCE.md), [JEV](docs/JEV.md) |
 
-## Plugging in JEV (or any other normalizer)
+## Plugging in a format, a domain, or JEV
 
-Implement `normalize(text) -> list[ConceptMatch]` from `multibridge/terms/base.py` and register it
-in `multibridge/terms/__init__.py`. The profiler, CLI and tests use whatever normalizer is
-registered, so nothing else changes.
+- **A format:** subclass `Format` in `multibridge/formats/` (read, write, check, and optionally
+  what one record is) and add it to `FORMATS`.
+- **A domain:** subclass `Pack` in `multibridge/packs/` and register it. Every hook has a no-op
+  default, so a pack can start as just a vocabulary.
+- **A normalizer (JEV, a terminology server):** implement `normalize(text)` (`multibridge/terminology.py`)
+  and return it from the pack's `normalizer()`; for the clinical pack, register it in
+  `multibridge/packs/clinical/terms/__init__.py`. Nothing else changes.
 
 ## Privacy and the law
 
-Real patient data is health data under the GDPR. [docs/COMPLIANCE.md](docs/COMPLIANCE.md) lists every
-legal constraint (GDPR, LOPDGDD, Ley 41/2002, ENS, NIS2, AI Act, MDR) as a numbered, testable
-requirement with its status. In short:
+[docs/COMPLIANCE.md](docs/COMPLIANCE.md) lists every legal constraint as a numbered, testable
+requirement with its status. It has a general part (GDPR, LOPDGDD, ENS, NIS2, AI Act) for any
+personal data, and a health part (Ley 41/2002, MDR, EHDS) for the clinical pack or any file where
+health data is detected. In short:
 - development uses synthetic data only
-- real data stays inside the hospital
-- the AI is local and sees structure plus fake samples, never real identifiers
+- real data stays inside the organisation
+- the AI is local and sees structure plus masked samples, never real identifiers
+- personal data is detected in every domain, with or without a pack
 - a human approves every mapping
 
 ## Honest limits
 
-- `terms/seed_es.py` is a **demo seed** of about 30 ICD-10 categories. Before real use, load the
+- `packs/clinical/terms/seed_es.py` is a **demo seed** of about 30 ICD-10 categories. Before real use, load the
   official CIE-10-ES release and/or SNOMED CT (free in Spain as a SNOMED member country).
 - Fuzzy `similarity` is a string similarity, **not a calibrated probability**. Calibration
   needs a labelled evaluation set (see the design doc).
 - The proposer's `confidence` is a rules similarity, **not a calibrated probability** either.
-- Not supported yet: key-value rows (HL7 `OBX-5` / FHIR `Observation.value`, where the code says
-  whether a row is weight or height). The matcher marks them *pending* instead of guessing.
-  Splitting a combined "Nombre y apellidos" column is not supported either.
-- Review means editing the draft recipe JSON for now. The Streamlit review table is roadmap phase 3.
+- Splitting a combined "Nombre y apellidos" column is not supported yet: the matcher marks it
+  *pending*.
+- Writers and checkers exist for JSON, CSV, Excel, XML and FHIR; not for HL7 v2 yet. The FHIR
+  checker covers structure, references and a few required elements, it is not the official
+  validator. Without a pack, only fields with near-identical names are matched by the rules; the AI
+  proposer helps more there.
+- Repeated groups are one level deep, and a template has a fixed number of parts per item (one
+  AllergyIntolerance per allergy in a list isn't supported yet).
+- In the web app you can change a field's column, but not edit its transforms (a translation table, a date format) yet. For that, edit the draft recipe JSON.
 - All data in `examples/` is synthetic.
 
 ## Roadmap
 
-See [docs/ROADMAP.md](docs/ROADMAP.md): current state, decisions, and the next phases:
+See [docs/ROADMAP.md](docs/ROADMAP.md): current state, decisions, and the phases:
 1. simplify to the hackathon design
 2. local Qwen proposer
-3. Streamlit review UI
+3. review UI: the hackathon website wired to a local API
 4. harder data
-5. evaluation and calibration
-6. deployment
+5. generic core + clinical pack
+6. destination from any example + writers
+7. first translation: messy Excel → FHIR
+8. second translation: CSV → nested XML or JSON
+9. evaluation and calibration
+10. deployment

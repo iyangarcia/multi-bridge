@@ -2,15 +2,19 @@
 
 *The single place that says where the project is, what was decided, and what to do next.
 Written so that someone (or an AI session) with no memory of earlier conversations can continue.
-Last updated: 2026-10-21, phase 2 in progress.*
+Last updated: 2026-10-23. **Direction changed to an any-to-any translator (section 2a);
+phases 5 (generic core + clinical pack) and 6 (destination from any example + writers) done**,
+next is phase 7.*
 
 ## 0. Read this first (new session checklist)
 
 1. Read this file, then [COMPLIANCE.md](COMPLIANCE.md) (legal constraints C1–C19), then
    [JEV.md](JEV.md) (what "JEV" means), then the [README](../README.md).
 2. Run the tests: `.venv/Scripts/python -m pytest -q`. They must pass before and after your changes.
-3. Find the first unchecked task in section 6 and continue from there. Update the checkboxes and
-   the session log (section 8) as you go.
+3. Read section 2a: the project is now a **translator from any format to any format**, not a
+   hospital mapper. Phases 5 and 6 are done; the next work is phase 7, then 8. Phase 2's
+   re-run and phase 4's leftovers can be picked up in between. Update the checkboxes and the
+   session log (section 8) as you go.
 
 ## 1. Hard rules (non-negotiable)
 
@@ -19,12 +23,17 @@ Last updated: 2026-10-21, phase 2 in progress.*
 - **The hackathon folder is read-only reference:** `C:\Users\Usuario\Desktop\TalentUO 2026 Grupo 5`
   (original web app in `app/`, design docs `Mapeador_universal_IA.docx` and
   `Documentación mapeador.docx`). Don't modify it.
-- **Synthetic data only** (C1). Never read, request or create real patient data.
+- **Synthetic data only** (C1). Never read, request or create real patient data, and, now that
+  the project is not only clinical, no real personal data of any kind.
 - **The AI is local** (C3): Ollama on `127.0.0.1:11434` only. No cloud model receives data. Jev
   only later, with structure only, and only if a hospital authorises it (C5).
 - **A human approves every mapping** before it runs (C8). No score or model output skips approval.
 - **Scores are labelled honestly.** Rule scores and model confidences are *uncalibrated* until
-  phase 5. Never present them as probabilities.
+  phase 9. Never present them as probabilities.
+- **The core assumes no domain** (D11, since phase 5). Nothing outside `multibridge/packs/` (domain
+  knowledge) and the format plug-ins (`multibridge/formats/`, plus their readers `parsers/hl7v2.py`
+  and `parsers/fhir.py`) may mention patients, hospitals, HL7, FHIR, LOINC or ICD-10.
+  `tests/test_generic.py::test_core_has_no_clinical_terms` enforces it.
 - Check [COMPLIANCE.md](COMPLIANCE.md) before touching data flow, the AI or storage. Never break a ✅ item.
 
 ## 2. The idea we're building (from the hackathon)
@@ -56,6 +65,75 @@ Rules from the hackathon design:
 Hackathon list of transforms: copy, rename, date conversion, translate values (H/M →
 male/female), join or split columns.
 
+## 2a. Direction (decided 2026-10-22): a translator from anywhere to anywhere
+
+Phases 1–4 built a **mapper**: many hospital formats in, one fixed clinical JSON out
+(`cdss_paciente`). The goal of the application is a **translator**: any type of data, in any
+format, into any other type of data in any other format. The hackathon idea still holds and
+becomes general: *show an example of the output you want, in any format, and the system proposes
+how to fill it from any input.*
+
+The user's decisions:
+- **A generic core with clinical as the first domain pack.** This keeps the hackathon story, the
+  hard test files and the work already done, while nothing in the core assumes healthcare.
+- **Prove "any to any" early with two first translations** that differ in both domain and
+  structure:
+  - **Messy Excel → FHIR:** clinical pack, flat table to a standard message (phase 7).
+  - **CSV → nested XML or JSON:** no pack, a generic case (phase 8).
+
+### The architecture
+
+| Part | What it is | Today |
+|---|---|---|
+| **Format plug-ins** | One per format: a **reader** (file → generic tree of `path → value` with repeats), a **writer** (the reverse) and a **checker** (is the output valid for that format?). Adding a format is one plug-in, never one mapping per pair of formats | readers exist for CSV, Excel, JSON/FHIR, HL7 v2; the only writer is the clinical JSON |
+| **Generic data model** | Records of `path → value`, repeats as lists, selector columns (`X [code=Y]`). A *structure*, not a vocabulary, so nothing is lost on the way through, custom fields included | `records.py` + `selectors.py`, but "one row per patient" is built in |
+| **Destination from an example, in any format** | The example goes through its own reader to give the target fields, types and formats; an optional overlay adds meaning and rules (like `.rules.json`) | JSON example only (`expected.py`) |
+| **Domain packs** (optional) | Vocabulary, synonyms, sensitive categories, code tables, terminology transforms, domain checks. **Clinical** = today's `concepts.py`, `terms/`, the LOINC/HL7 tables in `selectors.py`, the medical synonyms. Without a pack, matching relies on names, profiles and the AI: more fields stay pending, but it works | clinical knowledge is spread through the core |
+| **Connectors** | *Where* data comes from or goes to (files first; databases, SFTP, HTTP APIs later), separate from *what shape* it has | files only |
+
+**Unchanged:** profiling, the proposer (rules, local Qwen, later Jev), recipes with human approval,
+the engine's fixed transforms, the review web app and its privacy rules.
+
+**Not chosen, and why:**
+- A fixed middle format (everything → FHIR or one canonical model → everything): it loses
+  whatever the middle model doesn't cover, custom fields first. The clinical vocabulary stays
+  a *matching aid* inside the clinical pack, not a format the data passes through.
+- Fixed standard-to-standard conversions (e.g. only HL7 v2 → FHIR): predictable, but it drops the
+  learn-from-an-example idea, and existing tools already do it (NextGen/Mirth Connect, Microsoft
+  FHIR-Converter).
+- Reversible recipes only: round trips between pairs already mapped, not a translator.
+
+### Custom fields (both sides)
+
+- **In the source** (a private Excel column, an HL7 Z-segment, a FHIR extension): readers already
+  read them as ordinary columns. **None is ever dropped silently.** In review each unmatched one
+  gets a decision, saved in the recipe:
+  - **map** it to a destination field;
+  - **carry it through** in the destination format's slot for extras:
+    - FHIR: an `extension` with a configurable base URL, or an `Observation` with a local code system
+    - HL7 v2: a Z-segment or an `OBX` with a local code
+    - CSV / Excel / JSON / XML: an extra column, key or element
+  - **drop** it on purpose; the recipe records who dropped it and the output report lists it.
+- **In the destination** (a field like `riesgo_caidas` that matches no standard): described by its
+  example value plus an optional overlay entry, as today.
+- **Matching:** no vocabulary knows them, so the rules have only the name and profile. This is
+  where the AI helps most (with masked samples). Custom fields always start as **pending**; once
+  approved, the recipe reuses the match for files with the same structure.
+- **Privacy:** free-text custom fields may hold personal or health data. Sensitive-data detection
+  and the default-deny AI view apply to them as to any field, and data carried through an extension
+  or Z-segment is still personal data and appears in the output report.
+
+### Honest limits on "any"
+
+- **Structured data** (tables, trees, messages): fully covered by plug-ins.
+- **Standards with built-in meaning** (HL7, FHIR, EDI): covered, but each needs a solid checker.
+  Writing HL7 v2 is the hardest and comes after FHIR.
+- **Unstructured data** (PDFs, scans, free text): a different problem. Extracting values relies on
+  the AI and is less reliable. Later, and always through review.
+- **Cardinality** is the main new difficulty: one source row may become many output items (an Excel
+  row → a Patient plus several Observations) and many rows may become one (CSV order lines → one
+  nested order).
+
 ## 3. Environment
 
 | | |
@@ -66,9 +144,15 @@ male/female), join or split columns.
 | Ollama | 0.40.6, running on `127.0.0.1:11434`, `OLLAMA_HOST` unset (keep it that way) |
 | Models | `qwen3:8b` (5.2 GB, fits entirely on the GPU) and `qwen3:30b` (18 GB, mixture of experts with ~3B active parameters, split GPU+RAM). On this laptop both run at similar speed |
 
-## 4. Current state (2026-10-21, after phase 1)
+## 4. Current state (written after phase 1, 2026-10-21)
 
-101 tests pass. The pipeline follows the hackathon design:
+*Since then: phases 2–4 added the local AI proposer, selector columns and the web app. Phase 5
+split the code into a generic core, format plug-ins (`formats/`) and domain packs (`packs/`, with
+`packs/clinical/` holding everything clinical: `concepts.py`'s vocabulary is now
+`packs/clinical/vocabulary.py`, `terms/` is `packs/clinical/terms/`). 179 tests pass. The table
+below describes the pipeline, which is unchanged in behaviour.*
+
+The pipeline follows the hackathon design:
 
 | Module | What it does |
 |---|---|
@@ -104,6 +188,12 @@ trying `map` before phase 1. It is unused; the user can delete it.
 | D7 | `qwen3:8b` is the baseline the project must work with (hospital servers are weaker); `qwen3:30b` is the strong tier. Choose by measuring against the golden plans, not by feel | agreed |
 | D8 | What the AI sees: level 3 = *shape-preserving fake samples* for sensitive columns; real values only for columns cleared as harmless categories (default deny, C6); free text sent as normalised concepts, not raw text | agreed |
 | D9 | Jev later, behind an interface copying its choice/score/noul primitives (rules / local / jev backends), structure only | agreed |
+| D10 | **The review UI is the hackathon website, reused, not Streamlit.** Copy it from `TalentUO 2026 Grupo 5/app/` into `web/` (the hackathon folder stays untouched). Remove client branding. Replace its JavaScript parsers and simulated AI with calls to a small local Python API, so there is one implementation of the logic. See phase 3 | started at the user's request 2026-10-22 and implemented (phase 3). Client branding removed; Grupo 5 credited. Still worth confirming the team is fine with the reuse |
+| D11 | **Generic core + domain packs.** The project is a translator from any format to any format (section 2a). The core knows formats and structure only; clinical knowledge moves into the first domain pack | approved by the user 2026-10-22 |
+| D12 | **First translations: messy Excel → FHIR** (clinical pack) **and CSV → nested XML or JSON** (no pack). They differ in domain, direction of cardinality and output shape, so together they prove "any to any" | approved by the user 2026-10-22 |
+| D13 | **Format plug-in = reader + writer + checker**, registered by format; no code per pair of formats. Extends D3: EXPECTED is an example in *any* format, read by its own reader | proposed, follows from D11 |
+| D14 | **No custom field is dropped silently**: each unmatched source field is mapped, carried through (FHIR extension / HL7 Z-segment / extra column) or dropped on purpose, recorded in the recipe (C9) | proposed, follows from D11 |
+| D15 | **Compliance splits in two:** general GDPR rules for every domain (sensitive categories detected everywhere), plus the health rules whenever the clinical pack is used or health data is detected | proposed, follows from D11 |
 
 ## 6. Phases
 
@@ -164,37 +254,301 @@ trying `map` before phase 1. It is unused; the user can delete it.
 - **Done when:** the re-run shows no *wrong* fields for qwen3:8b on the 3 reviewed hospitals
   (pending is acceptable), and `EVAL.md` documents every difference.
 
-### Phase 3: review UI (Streamlit, as in the hackathon MVP)
-- [ ] Upload the example output + source file. A table of target ↔ source with a traffic light,
-      dropdowns to change the source or transform, the unmatched lists, and Approve disabled while
-      anything is pending. Download the output.
-- [ ] A "What the AI sees" vs "Your data" panel (the pitch moment). Synthetic data only in demos.
+### Phase 3: review UI: the hackathon website, wired to the Python pipeline (D10) — done 2026-10-22
+`multibridge serve` → http://127.0.0.1:8766. Started at the user's request ("start phase 3").
+- [x] Read the hackathon site. It had a JavaScript copy of the pipeline (`parsers.js`, `matcher.js`
+      simulated AI, `generarSalida` engine) and kept everything in `localStorage`.
+- [x] Copied into `web/` (the hackathon folder untouched). Kept the HTML structure, `styles.css`, the
+      Multi Bridge icons (`img/icono.png`, `img/logo.png`), the plain-language field names and the
+      review flow. **Removed:**
+      - the client branding (Pragmatech logo `cliente.png`, `config.js`)
+      - `parsers.js`, `matcher.js`, `ejemplos.js`, the JS engine and the `localStorage` "model"
+- [x] `multibridge/api.py` (standard library):
+      - loopback only, plus a Host-header check against DNS rebinding
+      - static files only from `web/`; no request logs
+      - uploads in memory only (last 10)
+      - endpoints `health, expected, examples, recipes, upload, propose, field, approve, run`
+- [x] **The server keeps its own copy of each proposal.** On approval the browser sends only the
+      decisions: `proposal`, `proposed_by` and the reuse signature are rebuilt server-side, so
+      provenance can't be forged and reuse checks the columns actually approved.
+- [x] Mapping screen centred on the destination fields (like recipes):
+      - before → after preview from the real engine, reasons, warnings, custom / personal-data badges
+      - change column (suggested first, then all)
+      - bulk-accept only high-confidence fields *without warnings*
+      - "Lo apruebo" for pending fields (recorded as a human change)
+      - required fields can't be skipped; the reviewer's name is required
+      - recipe reuse notice; proposer selector (rules / qwen3:8b / qwen3:30b, disabled if Ollama is off)
+      - **"Lo que ve la IA" vs "Tus datos" panel**
+- [x] Start page from `/api/recipes`; "Tu formato" read-only from `expected/`.
+- [x] `tests/test_api.py` (9 tests): flow, loopback, Host check, path traversal, forged provenance,
+      approval rules, column change preview, masked AI view.
+- [x] Browser check: HUCA proposed → 11 bulk-accepted + 4 reviewed → approved → 8/8 converted;
+      reload offers reuse; hard FHIR file shows the phone tie as pending; phone width fixed
+      (long names now wrap).
+- [ ] The 11 example buttons are a long list: group them (reto / difíciles) or use a select.
+- [ ] No way yet to edit transforms (e.g. a translation table) in the UI, only the column.
+- [ ] CLI `approve` still computes the reuse signature from the *proposed* columns, not the final
+      ones (the API rebuilds it). Fix by passing the source file to `approve`, or reject edits
+      to `from` in drafts.
+- **Done when:** met. The three hospitals can be mapped, reviewed, approved and converted from the
+  browser; there's no mapping logic in JavaScript; the API listens only on loopback.
 
-### Phase 4: harder data
-- [ ] Code-filtered sources: HL7 `OBX-5` and FHIR `Observation.value` selected by `OBX-3`/`code`
-      (LOINC 29463-7 = weight, 8302-2 = height). Today these are marked pending.
-- [ ] Split column: "Nombre y apellidos" → given + family, with human review (Spanish names are hard).
+### Phase 4: harder data (started 2026-10-22, no AI)
+Hard-data test: `examples/hard/build_hard.py` renders the same three invented patients as five hard
+files with known answers (`answers.json`); `scripts/hard_data.py` writes
+[HARD_DATA.md](HARD_DATA.md); `tests/test_hard_data.py` locks the results in.
+- [x] Five hard files: English CSV, cryptic Spanish CSV, HL7 v2.5, complex FHIR, hard Excel.
+      **Pipeline with the correct recipe: exact on all five.**
+- [x] Rules proposer on them: 73/75 right, **0 dangerous**. The two misses: `MED` left unmapped
+      on purpose (in Spanish exports it can mean médico or medicación), and home vs mobile phone
+      left as a tie for a human. Fixed on the way:
+      - **bug:** a date column mixing shapes (HL7 `19601105` + `198504121030`; Excel real date +
+        typed text) stopped being a date. It is now `format: "mixed"` + a `date` op with a list of formats
+      - FHIR `name` and `telecom` are sliced by `use` (official vs nickname, home vs mobile);
+        metadata paths include nested ones (`identifier[x].type.coding.code`), via `model.is_metadata`
+      - joined columns: APE1 + APE2, HL7 PID-5.2 + PID-5.3; FHIR given names joined with a space
+      - units read from the values when the label has none (height 1,68 → m, weight 65500 → g)
+      - pending instead of guessing: near-ties, repeated identifiers in one HL7 field, measurements
+        while Observation values exist, full-name columns
+      - a `ubicacion` concept, so a room number (PV1-3.2) can't pass for a height
+      - English and Spanish-abbreviation synonyms (mobile, address, allergies, GP, NOM, APE1, DOM,
+        LOC, ALERG, FNAC...)
+- [x] **Pick a repetition or a row by its code** (2026-10-22), as **selector columns**
+      (`multibridge/selectors.py`, called from `records.to_rows`):
+      - Columns such as `PID-3.1 [PID-3.5=MR]`, `OBX-5 [OBX-3.1=29463-7]`,
+        `Observation.valueQuantity.value [Observation.code.coding.code=8302-2]`.
+      - They are ordinary columns for the matcher, recipes and engine; **the engine is unchanged**.
+      - The HL7 parser keeps each repetition whole (`rec["_reps"]`), so selection is exact per
+        repetition / segment / resource.
+      - Covered: PID-3 (CX.5 identifier type), PID-5 (XPN.7), PID-11 (XAD.7), PID-13 (XTN.2), NK1-2,
+        OBX by OBX-3.1, FHIR Observation by code. Only data components get selectors (not PID-3.4
+        authority); selectors identical to their base column are skipped.
+      - Descriptions come from a small code table (LOINC, HL7 0203/0200/0201/0190); the unit comes
+        from OBX-6 / valueQuantity.unit.
+      - The matcher prefers one clean value per patient (−0.1 for multi-valued columns) and lightly
+        penalises empty columns (−0.2 × null ratio).
+      - Result: H3's NHC and DNI and H4's weight and height are now mapped exactly. Identifiers *without*
+        a type code (`NHC~ASTU` with no PID-3.5) stay pending.
+- [ ] Split column: "Nombre completo" / "Nombre y apellidos" → given + family, with human review
+      (Spanish names are hard: compound given names, two surnames, particles).
 - [ ] Terminology transform: diagnosis text → ICD-10 via `terms/`, keeping the original text next
       to the code; every change approved (C10).
-- [ ] Make the messy Excel (`examples/hospital_c_messy.xlsx`) a 4th golden case.
+- [ ] Re-run the hard files with qwen3:8b (`proposer.propose`) once Ollama is back, to compare with
+      the rules.
 
-### Phase 5: evaluation set and calibration
-- [ ] A generator: synthetic patients → messy CSV/Excel/HL7/FHIR with known correct mappings.
+*The split-name and terminology tasks above now belong to the clinical pack (phase 5).*
+
+### Phase 5: generic core + clinical pack (D11), no change in behaviour — done 2026-10-22
+Started at the user's request ("start phase 5").
+- [x] **Format plug-ins** (`multibridge/formats/`): a `Format` base class with `read`, `write`,
+      `check`, `sniff` (detection by extension or content, same order as before), and the record
+      rules `root` / `linked` / `column`, plus `keyed_entities` / `keyed_fields` / `unit_of` /
+      `code_meanings` (selector columns) and `timestamp_types` / `coded_types` (declared types).
+      Plug-ins: CSV, Excel, JSON, FHIR, HL7 v2; the existing parsers are their readers.
+      **The JSON writer** (`formats.get("json").write`) now writes the CLI output, byte-identical;
+      `check` validates a list of records. FHIR / HL7 writers raise NotImplementedError (phase 6).
+- [x] **Generic records:** `records.py` and `selectors.py` take everything format-specific from
+      the plug-in: HL7 roots on PID and joins by message, FHIR on Patient and joins by reference,
+      others root on the widest table. The HL7/OBX/Observation tables moved into the plug-ins.
+- [x] **Domain packs** (`multibridge/packs/`): a `Pack` base class whose hooks are all no-ops,
+      chosen by the destination's overlay (`"$pack": "clinical"` in `cdss_paciente.rules.json`;
+      not part of `Expected.id`). `packs/clinical/` holds the vocabulary and value detectors
+      (`vocabulary.py`), `terms/`, the LOINC meanings, ICD-10 code shape, clinical personal-data
+      hints, the clinical system prompt, and every special case from the hard files (doctor vs
+      patient, nickname slices, diagnosis columns, observation values, shared identifiers, APE1 +
+      APE2, PID-5.2 + PID-5.3, units from values, name order, the AI cross-checks).
+      `multibridge/terminology.py` is the core's normalizer contract.
+- [x] **Personal-data detection split** (COMPLIANCE C20): core hints for ID documents,
+      identifiers, names, contact, addresses, birth dates and **GDPR art. 9 categories**; core value
+      patterns for DNI, NIE, phone, email, **IBAN** and **values shaped like people's names** (found
+      while testing: without a pack, a "Cliente" column of names counted as harmless categories and
+      would have reached the AI). The clinical pack adds NHC, health card, doctor's name and HL7
+      positions. Profiling runs every installed pack's detectors (over-detection is the safe side).
+- [x] **No pack** works: without vocabulary, a near-identical name (≥ 0.75 similarity) is evidence
+      on its own, for targets no concept knows. `tests/test_generic.py` (8 tests): a shop CSV mapped
+      with no pack (dates, decimal commas, an untranslatable status left pending), detection without
+      packs, the clinical pack's extra hints, the format registry and JSON writer, and the grep test.
+- [x] `docs/COMPLIANCE.md` rewritten along D15: section 0 says when each part applies; general
+      and health parts for data and laws; constraints tagged (C10 is [health]); new C20; every ✅ kept.
+- [x] Other core changes: the CLI and API take the destination from the only `expected/*.example.json`
+      (or `--expected`); `multibridge terms` uses the destination's pack (`--pack`); the API's
+      example extensions come from the plug-ins.
+- [x] **Proof of no change in behaviour:** a snapshot of everything users and the model see (profiles,
+      rows, proposals, rankings, AI prompts, system prompt) for all 12 example files is
+      **byte-identical** before and after. The golden output is unchanged. Only two test imports
+      changed (`terms` and `is_observation` moved into the clinical pack). Web app re-checked in the
+      browser: HUCA 15/15 mapped by rules.
+- [ ] Phase 4 leftovers, now clinical-pack tasks: split full-name columns; diagnosis text → ICD-10
+      terminology transform (C10).
+- **Done when:** met.
+
+### Phase 6: destination from any example + writers (D13) — done 2026-10-23
+Started at the user's request ("start phase 6").
+- [x] **Destination from an example in any format** (`Expected.from_bytes` / `load`): the example's
+      format plug-in gives a `Destination` (targets + a *template* for the writer + fixed values).
+      `expected/<name>.example.<ext>` + optional `<name>.rules.json`. New overlay keys: `$group_by`,
+      `$repeat` (XML), `$fixed` / `$targets` (FHIR), `$extension_base`. `Expected.id` includes the
+      format and grouping **only when they differ from the original JSON**: `cdss_paciente#0ac41f7c`
+      is unchanged, so earlier recipes keep matching (test).
+      - **JSON:** objects nest; a list of objects is a repeated group (`lineas[].producto`, one level);
+        a list of plain values is one target that takes several values (`multiple: "list"`).
+      - **CSV / Excel:** the main table's columns in order; types, date style, decimal comma and number
+        of decimals from the example's values; title case when the example writes "Ana Ruiz".
+      - **XML** (new plug-in, reader too): one record per repeated child of the root; attributes as
+        `@name`; an element the example repeats becomes a repeated group or a list. DOCTYPE/ENTITY
+        refused.
+      - **FHIR:** the example Bundle (or one resource) is a template. Data leaves are targets, named
+        like the reader names them (`Patient.name.given`, `Observation[29463-7].valueQuantity.value`);
+        structural leaves (resourceType, ids, references, systems, `use`, statuses, an Observation's
+        code, UCUM unit) stay fixed. Targets get descriptions, units (`kg` from the template) and
+        enums (`Patient.gender`), so the clinical pack matches them like any other destination.
+- [x] **Output model** (`output.py`): flat items `{target path: value}`, repeated groups as lists
+      of sub-items, carried fields under `_extras`; `nest()` gives the JSON view. The engine keeps
+      `Result.records` (nested, byte-identical for the original destination) and adds `items` and
+      `Result.write(expected)`.
+- [x] **Cardinality:** many rows → one item with `$group_by` (fields outside the group must agree
+      across its rows, otherwise those rows are set aside with the reason; a row without the key is
+      set aside); one row → several parts through the template (a Patient + its Observations) or a
+      list target. Both live in the destination, so they are part of `Expected.id` and of what the
+      reviewer approves.
+      - Not done: "selector columns backwards" for HL7 (writing PID-3 by type code) waits for the
+        HL7 writer; for FHIR the template's code slices already create the right Observation.
+- [x] **Writers + checkers**, standard library + openpyxl only, no new dependency:
+      JSON (list of records); CSV (example's separator, BOM if it had one, extras as extra columns;
+      checker: same width on every row); Excel (typed cells, real dates; checker: opens, has a
+      header); XML (copies the example element by element, drops empty elements; checker:
+      well-formed, no DOCTYPE); FHIR (new `urn:uuid` per item and resource, references rewired,
+      resources whose targets are all empty left out, extras as `extension` with
+      `$extension_base`; checker: resourceType, unique fullUrls, references inside the Bundle,
+      required elements of Observation / Condition / AllergyIntolerance, gender, birthDate,
+      numeric quantities). A full FHIR validator (Java) was not added.
+- [x] **Custom fields (D14):** `approve(..., carry=[...])` records `extras: {carry, drop, by}` for
+      every unused source column (dropping is a recorded decision, never silent). Part of the
+      plan hash when present; old recipes without it still verify. The engine copies carried
+      values; the report lists `custom_fields`. A carried column missing from a new file makes the
+      recipe not reusable. CLI: `multibridge approve ... --carry COLUMN`.
+- [x] **Clinical pack:** translations now land on the destination's own catalogue (`Hombre/Mujer`
+      as well as `male/female`, `O+` from `0+`); `Pack.translate(..., allowed)`.
+- [x] **Web app "De → A":** destination picker (folder, `examples/destinos/`, or **uploaded**: an
+      example plus its optional `.rules.json`, kept in memory only); context line (pack, grouping,
+      fixed values); "Llevar" per unused source column with a running "x extra, y descartados";
+      the result shows the output file and its checker's problems; download in the destination's
+      format. Wording made neutral (origen / destino); the home page keeps the hackathon hospitals.
+      Server checks the approval is for the destination the proposal was made for.
+- [x] **Bug found from phase 5:** `/api/field` (recomputing a field after a column change) ran
+      without the destination's pack, so clinical translations disappeared after a change. Fixed,
+      with a regression test.
+- [x] Example destinations (synthetic) in `examples/destinos/`: FHIR Bundle (Patient + weight +
+      height), CSV table (Hombre/Mujer, decimal comma), XML with a phone list.
+- [x] `tests/test_destinations.py` (27 tests): every source × every destination (3 × 5) approved,
+      run, written and checked; FHIR template, ids, references, empty resources; CSV looks like the
+      example; grouping to JSON and XML (and the XML read back); rows of a group that disagree;
+      list targets; carry/drop into every format; old recipes; DOCTYPE; the API flow with an
+      uploaded destination. **206 tests pass**; the behaviour snapshot of the original destination is
+      unchanged (only the three new, unset Target attributes appear).
+- [x] Browser check: messy CSV → FHIR (8/8, 24 resources, check passed, blood group carried as an
+      extension, 3 drops recorded); HL7 → CSV (Mujer/Hombre, 12/04/1985, 58,5) and HL7 → XML. Test
+      recipes deleted afterwards.
+- [ ] Not done: editing transforms in the UI (still only the column); HL7 v2 writer (later);
+      variable fan-out (one AllergyIntolerance per allergy in a list); nested groups (one level only).
+- **Done when:** met for JSON, CSV, Excel, XML and FHIR destinations (HL7 v2 writing is in "Later").
+
+### Phase 7: first translation A — messy Excel → FHIR (clinical pack)
+- [ ] Destination example: a synthetic FHIR Bundle (Patient + Observation + AllergyIntolerance +
+      Condition) in `expected/`.
+- [ ] Sources: the hackathon Excel and the hard Excel (`examples/hard/`), with custom columns.
+- [ ] One row → a Patient plus several resources linked by reference; measurements as
+      Observations with LOINC and UCUM units; custom columns carried as extensions or dropped on
+      purpose.
+- [ ] Golden test (reviewed plan + output Bundle) and a hard-data score, rules and qwen3:8b.
+- [ ] Reviewed end to end in the web app.
+- **Done when:** the Bundles pass the FHIR checker, match the golden output and no source column
+  disappears without a recorded decision.
+
+### Phase 8: first translation B — CSV → nested XML or JSON (no pack)
+- [ ] A non-clinical synthetic dataset with a known answer (e.g. order lines → orders with a
+      customer and nested lines), messy like the hard set: odd headers, mixed dates, decimal commas,
+      custom columns.
+- [ ] Destination example: nested XML and the same in JSON.
+- [ ] Many rows → one output item (group by order number).
+- [ ] Measure the proposer with no pack (rules and qwen3:8b): how many fields right, pending,
+      wrong. Wrong must stay at 0.
+- **Done when:** both translations (phase 7 and 8) run through the same pipeline and review screen
+  with no format- or domain-specific code in the core.
+
+### Later (unordered)
+- HL7 v2 writer + checker (the hardest standard to write correctly).
+- More formats: YAML, Parquet, SQL tables, EDI.
+- Connectors: databases, SFTP, HTTP APIs.
+- Unstructured sources (PDF, scans, free text) via AI extraction, always reviewed.
+- More domain packs (invoices, logistics, HR...), only when a use case asks for one.
+
+### Phase 9: evaluation set and calibration
+- [ ] A generator: synthetic records → messy files in every supported format with known correct
+      mappings (clinical and at least one non-clinical domain).
 - [ ] Calibrate confidences per score band, so that "0.9" means right about 9 in 10. Only then
       may the UI call it a probability.
 
-### Phase 6: deployment and compliance
-- [ ] FastAPI service + Docker image (on-prem or private cloud), corporate login, roles, encryption
-      at rest, audit log (C14).
+### Phase 10: deployment and compliance
+- [ ] Harden the phase 3 API for an organisation: Docker image (on-prem or private cloud), corporate
+      login, roles (propose vs approve), encryption at rest, audit log (C14).
 - [ ] Compliance paperwork the hospital will ask for: C16–C19.
 - [ ] Jev backend (D9) only after TypeSafe answers the questions in `JEV.md` and a hospital authorises it.
 
 ## 7. Open questions for the user
 
-- Is the Excel template as EXPECTED needed in phase 1, or is JSON enough at first?
+- D10 is implemented with the client branding removed. Is Grupo 5 OK with its UI living in this
+  repo (credited in the footer and README)?
+- Phase 8: XML, JSON or both as the destination? And which non-clinical domain for its dataset
+  (orders is the proposal)?
+- The repo is called `multibridge-mapper`; does the name stay now that it's a translator? (User's
+  call; GitHub is theirs.)
+- FHIR extensions need a base URL for custom fields. Which one?
+- D13–D15 follow from the approved direction; confirm them. (D15 is already applied to
+  COMPLIANCE.md in phase 5.)
+- A `multibridge serve` you started yourself at 22:45 still runs on port 8766 with the code from
+  before phase 5; restart it to get the new code.
 - Add the C1 rule ("never put real patient data in this repo") to `CLAUDE.md`. That's the user's file.
 
 ## 8. Session log (newest first, append only)
+
+- **2026-10-23:** Phase 6 done: destinations from an example in any format (JSON, CSV, Excel,
+  XML, FHIR template), writers and checkers for all five, grouping (many rows → one item), list
+  targets, custom fields carried or dropped on record, web app "De → A" with uploads and
+  download in the destination's format. XML reader added. Fixed `/api/field` ignoring the pack.
+  206 tests pass. Next: phase 7 (messy Excel → FHIR, golden + hard data).
+
+- **2026-10-22 (late night, later):** Phase 5 done: generic core, format plug-ins (`formats/`),
+  domain packs (`packs/`, clinical first), personal-data detection in every domain (C20),
+  COMPLIANCE split (D15). Behaviour snapshot byte-identical on all 12 example files.
+  179 tests pass. Next: phase 6 (destination from any example + writers).
+
+- **2026-10-22 (late night):** **Direction changed** at the user's request: from a hospital mapper
+  to a translator from any format to any format, any type of data (section 2a).
+  - Approved: generic core with clinical as the first domain pack (D11); first translations messy
+    Excel → FHIR and CSV → nested XML/JSON (D12). Proposed D13–D15.
+  - New phases 5–8; old calibration and deployment phases renumbered to 9 and 10. Nothing built yet.
+
+- **2026-10-22 (night):** Phase 3 done.
+  - `multibridge serve` serves the copied hackathon site from `web/`, wired to `multibridge/api.py`.
+  - Client branding removed; the server rebuilds provenance and the reuse signature on approval.
+  - Verified in the browser. 171 tests pass.
+  - Added a `multibridge-web` entry to the hackathon folder's `.claude/launch.json` (Claude preview
+    config only, not the app).
+
+- **2026-10-22 (later):** Selector columns: pick a repetition or row by its code (PID-3.5, OBX-3,
+  FHIR Observation code). Hard set with rules: 73/75 right, 0 wrong mappings (left: MED on purpose,
+  home vs mobile tie). 162 tests pass. Next: phase 3 web app.
+
+- **2026-10-22:** Hard-data test without AI (phase 4).
+  - The pipeline was already exact with correct recipes.
+  - The rules proposer went from 4 wrong + several dangerous picks to 73/75 right and 0 dangerous.
+  - Fixed the mixed-date bug; FHIR slicing by `use`; joined surnames; units from values;
+    pending for ties, repeated identifiers, Observations and full names.
+  - 159 tests pass. Next: the user wants to wire into the web app (phase 3).
+
+- **2026-10-21 (night):** Recorded D10 and a new phase 3 at the user's request: reuse the
+  hackathon website as the review UI via a local API, instead of Streamlit. Not started.
 
 - **2026-10-21 (evening):**
   - Phase 2 mostly done: Ollama client, masked AI view, proposer with reply checks and rules

@@ -37,3 +37,4 @@ Each golden field is **right** (same decision as the reviewed plan), **pending**
 ## History
 
 - **Run 1 (2026-10-21), before the cross-checks.** The table above. The safety checks added afterwards turn each listed *wrong* into *pending*; a re-run is needed to confirm (ROADMAP phase 2).
+- **2026-10-22:** rules re-checked after the hard-data fixes and the selector columns: still 45/45 on the three reviewed hospitals. Models not re-run (Ollama off).
