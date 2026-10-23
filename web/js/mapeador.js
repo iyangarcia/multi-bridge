@@ -11,8 +11,10 @@ const estado = {
   revisado: new Set(),// targets que una persona ha revisado
   sinDato: new Set(), // targets que se aceptan vacíos
   recien: null,
-  ultimo: null        // resultado de aprobar / reutilizar
+  ultimo: null,       // resultado de aprobar / reutilizar
+  directo: null       // destino a medida: { formato, campos: [{ name, type, required, multiple, from, incluir }] }
 };
+const TIPOS = { string: "Texto", integer: "Entero", number: "Número", date: "Fecha", boolean: "Sí / No" };
 
 const ALTA = 0.85;
 const nivel = p => p === null || p === undefined ? "bajo" : p >= 0.85 ? "alto" : p >= 0.7 ? "medio" : "bajo";
@@ -52,7 +54,8 @@ async function cargarSubida(subida) {
   $("resultado").classList.add("oculto");
   pintarNotas();
   pintarIA();
-  await proponer();
+  if (estado.directo && $("todos-campos").checked) await camposDelOrigen();   // la lista sale del archivo nuevo
+  else await proponer();
 }
 
 async function proponer() {
@@ -67,6 +70,10 @@ async function proponer() {
       estado.decisiones[t] = { ...f, preview: p.previews[t] };
     }
     estado.revisado = new Set();
+    // Lo que la persona ató a una columna al hacer la lista ya está decidido; lo dudoso sigue por revisar
+    for (const [t, f] of Object.entries(p.draft.fields)) {
+      if (f.proposed_by === "direct" && f.status === "mapped") estado.revisado.add(t);
+    }
     estado.sinDato = new Set();
     estado.llevar = new Set();
     pintarAvisoReceta();
@@ -464,7 +471,7 @@ function mostrarResultado(r, como) {
 async function pintarDestinos(elegido) {
   const lista = await api("destinations");
   const sel = $("sel-destino");
-  const origen = { carpeta: "", ejemplo: " · ejemplo", subido: " · subido" };
+  const origen = { carpeta: "", ejemplo: " · ejemplo", subido: " · subido", medida: " · a medida" };
   sel.innerHTML = lista.map(d => `<option value="${esc(d.key)}">${esc(d.name)} · ${esc(d.label)} · ${d.fields} campos${origen[d.origin] || ""}</option>`).join("");
   const clave = elegido && lista.some(d => d.key === elegido) ? elegido : (lista[0] || {}).key;
   if (clave) await elegirDestino(clave, false);
@@ -502,6 +509,119 @@ async function subirDestino(files) {
   } catch (e) { pensando(null); toast(e.message); }
 }
 
+// ---------- Destino a medida: formato + lista de campos ----------
+async function pintarFormatos() {
+  const orden = ["json", "csv", "excel", "xml"];
+  const lista = (await api("formats")).filter(f => f.blank)
+    .sort((a, b) => (orden.indexOf(a.name) + 1 || 99) - (orden.indexOf(b.name) + 1 || 99));
+  const cont = $("formatos-directos");
+  cont.innerHTML = "";
+  lista.forEach(f => {
+    const b = document.createElement("button");
+    b.className = "boton secundario pequeno";
+    b.dataset.formato = f.name;
+    b.textContent = f.label;
+    b.title = `Salida en ${f.label} (${f.extension}) con los campos que elijas`;
+    b.onclick = () => elegirFormato(f.name);
+    cont.appendChild(b);
+  });
+}
+
+async function elegirFormato(formato) {
+  const antes = estado.directo;
+  estado.directo = { formato, campos: antes ? antes.campos : [], desde: antes && antes.desde, clave: antes && antes.clave };
+  pintarDirecto();
+  // Otro formato con la misma lista: se conservan los cambios; un archivo nuevo trae sus campos
+  if ($("todos-campos").checked && estado.subida && estado.directo.desde !== estado.subida.upload_id) return camposDelOrigen();
+  if (!estado.directo.campos.length) {
+    if (!$("todos-campos").checked) anadirCampo();
+    $("nombre-destino").textContent = `${FORMATOS[formato] || formato} · ${estado.subida ? "añade campos" : "todos los campos del archivo"}`;
+    $("contexto-destino").textContent = estado.subida ? "Escribe los campos que quieres y pulsa «Aplicar»"
+      : "Sube o elige unos datos de origen: sus campos aparecerán aquí";
+    return;
+  }
+  await aplicarCampos();
+}
+
+async function camposDelOrigen() {
+  try {
+    const r = await api("fields", { upload_id: estado.subida.upload_id });
+    estado.directo.campos = r.fields.map(f => ({ ...f, incluir: true }));
+    estado.directo.desde = estado.subida.upload_id;
+    await aplicarCampos();
+  } catch (e) { toast(e.message); }
+}
+
+function anadirCampo() {
+  estado.directo.campos.push({ name: "", type: "string", required: false, multiple: null, from: null, incluir: true, nuevo: true });
+  pintarDirecto();
+  const entradas = $("tabla-campos").querySelectorAll("input.nombre-campo");
+  if (entradas.length) entradas[entradas.length - 1].focus();
+}
+
+async function aplicarCampos() {
+  const d = estado.directo;
+  const usados = d.campos.filter(c => c.incluir && c.name.trim());
+  if (!usados.length) { toast("Marca o añade al menos un campo"); pintarDirecto(); return; }
+  try {
+    pensando("Preparando el destino…");
+    const cuerpo = { format: d.formato, fields: usados.map(c => ({ name: c.name.trim(), type: c.type, required: c.required,
+      multiple: c.multiple, from: c.from })) };
+    if (estado.subida) cuerpo.upload_id = estado.subida.upload_id;
+    if (d.clave) cuerpo.replace = d.clave;   // se sustituye la lista anterior, no se acumulan destinos
+    const r = await api("destination/fields", cuerpo);
+    d.clave = r.key;
+    r.fields.forEach((f, i) => { usados[i].name = f.name; });   // XML: nombres convertidos en etiquetas válidas
+    pensando(null);
+    await pintarDestinos(r.key);
+    pintarDirecto();
+    if (estado.subida) await proponer();
+  } catch (e) { pensando(null); toast("No se puede usar esa lista: " + e.message); pintarDirecto(); }
+}
+
+function pintarDirecto() {
+  const d = estado.directo;
+  document.querySelectorAll("#formatos-directos button").forEach(b =>
+    b.classList.toggle("activo", !!d && b.dataset.formato === d.formato));
+  $("sec-campos").classList.toggle("oculto", !d);
+  if (!d) return;
+  $("n-campos").textContent = d.campos.filter(c => c.incluir).length;
+  $("campos-formato").textContent = `· ${FORMATOS[d.formato] || d.formato}`;
+  const tabla = $("tabla-campos");
+  if (!d.campos.length) {
+    tabla.innerHTML = `<p class="pista">${estado.subida ? "Sin campos todavía: añade el primero." : "Sube o elige unos datos de origen y sus campos aparecerán aquí."}</p>`;
+    return;
+  }
+  tabla.innerHTML = `<div class="fila-campo cab"><span>Recibir</span><span>Nombre en la salida</span><span>Tipo</span><span>Obligatorio</span><span>Sale de</span><span></span></div>`;
+  d.campos.forEach((c, i) => {
+    const fila = document.createElement("div");
+    fila.className = "fila-campo" + (c.incluir ? "" : " apagado");
+    const col = c.from && estado.subida ? columna(c.from) : null;
+    const origen = col ? humanoOrigen(col) : null;
+    fila.innerHTML = `
+      <span><input type="checkbox" class="incluir" ${c.incluir ? "checked" : ""} aria-label="Recibir este campo"></span>
+      <span><input type="text" class="nombre-campo" value="${esc(c.name)}" placeholder="nombre_del_campo" maxlength="200"></span>
+      <span><select class="tipo-campo">${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}" ${k === c.type ? "selected" : ""}>${v}</option>`).join("")}</select></span>
+      <span><input type="checkbox" class="obligatorio" ${c.required ? "checked" : ""} aria-label="Obligatorio"></span>
+      <span class="origen-campo" title="${esc(origen ? origen.tecnico : "")}">${origen ? esc(origen.nombre) + (c.multiple === "list" ? ' <i class="pista">· varios valores</i>' : "")
+        : '<i class="pista">nuevo · se propone por su nombre</i>'}</span>
+      <span>${c.nuevo ? '<button class="boton secundario pequeno quitar-campo" title="Quitar este campo">×</button>' : ""}</span>`;
+    fila.querySelector(".incluir").onchange = e => { c.incluir = e.target.checked; pintarDirecto(); };
+    fila.querySelector(".nombre-campo").oninput = e => { c.name = e.target.value; };
+    fila.querySelector(".tipo-campo").onchange = e => { c.type = e.target.value; };
+    fila.querySelector(".obligatorio").onchange = e => { c.required = e.target.checked; };
+    const quitarBtn = fila.querySelector(".quitar-campo");
+    if (quitarBtn) quitarBtn.onclick = () => { d.campos.splice(i, 1); pintarDirecto(); };
+    tabla.appendChild(fila);
+  });
+}
+
+function marcarTodos(valor) {
+  if (!estado.directo) return;
+  estado.directo.campos.forEach(c => { c.incluir = valor; });
+  pintarDirecto();
+}
+
 // ---------- Inicio ----------
 async function iniciar() {
   configurarSelector();
@@ -512,7 +632,14 @@ async function iniciar() {
   $("dl-receta").onclick = () => estado.ultimo && descargar(`receta_${estado.ultimo.recipe.recipe}.json`, JSON.stringify(estado.ultimo.recipe, null, 2), "application/json");
   $("dl-salida").onclick = () => estado.ultimo && descargar(estado.ultimo.output.filename,
     base64ABytes(estado.ultimo.output.content_b64), estado.ultimo.output.mime);
-  $("sel-destino").onchange = () => elegirDestino($("sel-destino").value);
+  $("sel-destino").onchange = () => { estado.directo = null; pintarDirecto(); elegirDestino($("sel-destino").value); };
+  $("btn-anadir-campo").onclick = anadirCampo;
+  $("btn-aplicar-campos").onclick = aplicarCampos;
+  $("btn-todos-marcar").onclick = () => marcarTodos(true);
+  $("btn-ninguno-marcar").onclick = () => marcarTodos(false);
+  $("todos-campos").onchange = () => {
+    if (estado.directo && $("todos-campos").checked && estado.subida) camposDelOrigen();
+  };
   $("file-destino").addEventListener("change", e => e.target.files.length && subirDestino(e.target.files));
   try { $("revisor").value = localStorage.getItem("multibridge.revisor") || ""; } catch { /* sin almacenamiento */ }
   $("revisor").addEventListener("change", () => { try { localStorage.setItem("multibridge.revisor", $("revisor").value.trim()); } catch { /* */ } });
@@ -520,6 +647,7 @@ async function iniciar() {
   try {
     const q0 = new URLSearchParams(location.search);
     await pintarDestinos(q0.get("destino"));
+    await pintarFormatos();
     const ejemplos = await api("examples");
     const cont = $("ejemplos");
     ejemplos.forEach(e => {

@@ -455,3 +455,23 @@ main.mapeador .destino-elegir label:first-child { display: flex; flex-direction:
 main.mapeador .destino-elegir select { font-family: inherit; font-size: 13px; border: 1px solid var(--borde); border-radius: 10px; padding: 7px 8px; background: #fff; color: var(--negro); max-width: 100%; }
 main.mapeador .subir-destino { cursor: pointer; }
 main.mapeador .llevar-extra { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--negro); white-space: nowrap; cursor: pointer; }
+
+/* ---------- Destino a medida: formato + lista de campos ---------- */
+main.mapeador .destino-directo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 8px; font-size: 12px; color: var(--gris); }
+main.mapeador .formatos-directos { display: flex; gap: 6px; flex-wrap: wrap; }
+main.mapeador .formatos-directos .boton.activo { background: var(--azul); color: var(--blanco); }
+main.mapeador .casilla { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--negro); cursor: pointer; }
+main.mapeador .bloque-campos { background: var(--blanco); border: 1px solid #bcd2ff; border-radius: 14px; padding: 12px 14px; margin-bottom: 22px; }
+main.mapeador .bloque-campos summary { cursor: pointer; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; display: flex; gap: 8px; align-items: center; font-family: var(--fuente-marca); color: var(--azul); }
+main.mapeador .tabla-campos { max-height: 420px; overflow: auto; margin-top: 8px; }
+main.mapeador .fila-campo { display: grid; grid-template-columns: 64px minmax(140px, 1.4fr) 120px 90px minmax(120px, 1.6fr) 40px; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--borde); font-size: 13px; }
+main.mapeador .fila-campo.cab { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gris); position: sticky; top: 0; background: var(--blanco); z-index: 1; }
+main.mapeador .fila-campo.apagado { opacity: .5; }
+main.mapeador .fila-campo input[type=text], main.mapeador .fila-campo select { width: 100%; font-family: inherit; font-size: 13px; border: 1px solid var(--borde); border-radius: 8px; padding: 5px 7px; background: var(--blanco); color: var(--negro); }
+main.mapeador .fila-campo .origen-campo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+main.mapeador .acciones-campos { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 720px) {
+  main.mapeador .fila-campo { grid-template-columns: 40px 1fr 96px; }
+  main.mapeador .fila-campo > span:nth-child(n+4) { grid-column: span 1; }
+  main.mapeador .fila-campo.cab > span:nth-child(n+4) { display: none; }
+}

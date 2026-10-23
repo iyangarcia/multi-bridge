@@ -15,6 +15,10 @@ Endpoints (JSON):
     GET  /api/destinations                destinations: expected/*.example.* (+ rules) and uploaded ones
     GET  /api/expected?destination=ID     one destination's fields (default: the first in expected/)
     POST /api/destination {name, content_b64, rules?}    → an uploaded example of the output, any format
+    GET  /api/formats                     formats a destination can be (and which need no example)
+    POST /api/fields   {upload_id}        → every field of that source, typed: a starting field list
+    POST /api/destination/fields {format, fields, name?, upload_id?, delimiter?, replace?}
+                                          → a destination with no example; a field's "from" ties it to a column
     GET  /api/examples                    synthetic example files that can be loaded
     GET  /api/recipes                     approved recipes (summary)
     GET  /api/recipes/<name>              one approved recipe (download)
@@ -45,7 +49,7 @@ from .ai import ollama
 from .aiview import source_view
 from .engine import TransformError, field_value, run
 from . import formats, packs
-from .expected import Expected, destination_name
+from .expected import Expected, destination_name, fields_from_rows
 from .formats import FORMATS
 from .parsers import parse_bytes
 from .proposer import propose
@@ -56,6 +60,7 @@ MAX_BODY = 25 * 1024 * 1024
 MAX_UPLOADS = 10
 EXAMPLE_SUFFIXES = {ext for f in FORMATS.values() for ext in f.extensions}
 NOT_EXAMPLES = {"answers.json", "destino_expected.json"}
+CLIENT_GONE = (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)
 
 
 class ApiError(Exception):
@@ -184,7 +189,8 @@ class App:
             for key, d in self.destinations.items():
                 e = d["expected"]
                 out.append({"key": key, "name": e.name, "file": d["file"], "format": e.format,
-                            "label": formats.get(e.format).label, "fields": len(e.targets), "origin": "subido"})
+                            "label": formats.get(e.format).label, "fields": len(e.targets),
+                            "origin": "medida" if key.startswith("medida-") else "subido"})
         return out
 
     def upload_destination(self, body: dict) -> dict:
@@ -209,6 +215,75 @@ class App:
             while len(self.destinations) > MAX_UPLOADS:
                 self.destinations.popitem(last=False)
         return self.get_expected(key)
+
+    @staticmethod
+    def list_formats() -> list[dict]:
+        """Formats a destination can be: `blank` ones need no example, only a list of fields."""
+        return [{"name": f.name, "label": f.label, "extension": f.extension, "blank": f.can_blank}
+                for f in FORMATS.values()]
+
+    def source_fields(self, body: dict) -> dict:
+        """Every field of an uploaded source, typed: the starting list for a destination with no example."""
+        return {"fields": fields_from_rows(self._upload(body.get("upload_id", ""))["rows"])}
+
+    def fields_destination(self, body: dict) -> dict:
+        """A destination from a format and a field list (no example). A field's "from" names the source
+        column it comes from: the proposal then takes it as decided (the person chose it), not guessed.
+        Memory only, like uploaded examples."""
+        fmt = str(body.get("format") or "")
+        if fmt not in FORMATS:
+            raise ApiError(400, "formato desconocido")
+        fields = body.get("fields")
+        if not isinstance(fields, list):
+            raise ApiError(400, "faltan los campos")
+        name = "".join(ch for ch in str(body.get("name") or "") if ch.isalnum() or ch in "-_")[:40] \
+            or f"a-medida-{fmt}"
+        options = {"delimiter": body["delimiter"]} if body.get("delimiter") else {}
+        try:
+            e = Expected.from_fields(fmt, fields, name, options)
+        except formats.UnsupportedFormat as ex:
+            raise ApiError(422, str(ex)) from None
+        except ValueError as ex:
+            raise ApiError(400, str(ex)) from None
+        columns = self._upload(body["upload_id"])["rows"].columns if body.get("upload_id") else {}
+        direct = {t.path: f["from"] for f, t in zip(fields, e.targets)
+                  if isinstance(f.get("from"), str) and f["from"] in columns}
+        with self.lock:   # editing the list again replaces the same destination instead of piling up new ones
+            key = body.get("replace") if str(body.get("replace") or "").startswith("medida-") \
+                and body["replace"] in self.destinations else "medida-" + secrets.token_urlsafe(8)
+            self.destinations[key] = {"file": f"a medida ({formats.get(fmt).label})", "expected": e, "direct": direct}
+            while len(self.destinations) > MAX_UPLOADS:
+                self.destinations.popitem(last=False)
+        return {**self.get_expected(key),
+                "fields": [{"name": t.leaf, "type": t.type, "required": t.required, "multiple": t.multiple,
+                            "from": direct.get(t.path)} for t in e.targets]}
+
+    def _direct(self, dest: str | None) -> dict[str, str]:
+        with self.lock:
+            return dict((self.destinations.get(dest or "") or {}).get("direct") or {})
+
+    @staticmethod
+    def _direct_draft(draft: dict, rows: Rows, expected: Expected, direct: dict[str, str]) -> dict:
+        """The proposal with every field the person tied to a column when building the destination.
+        Only the transforms are worked out (type and format); the rest keeps the rules proposal."""
+        pack = packs.get(expected.pack)
+        taken = {c for c in direct.values() if c in rows.columns}
+        fields = {}
+        for t in expected.targets:
+            col = direct.get(t.path)
+            if col in rows.columns:
+                transforms, issues, pending = matcher.transforms_for(rows, [col], t, pack)
+                fields[t.path] = {"status": "pending" if pending else "mapped", "from": [col], "transforms": transforms,
+                                  "confidence": 0.99, "why": ["elegido al crear el destino"], "issues": issues,
+                                  "proposed_by": "direct"}
+            else:
+                f = {k: v for k, v in draft["fields"][t.path].items() if k != "proposal"}
+                if set(f["from"]) & taken:
+                    f.update(status="no_data", **{"from": []}, transforms=[], confidence=None)
+                fields[t.path] = f
+        out = recipes.new(draft["recipe"], rows, expected, fields, proposed_by="rules")
+        out["proposer"] = {"model": "direct"}
+        return out
 
     def list_examples(self) -> list[dict]:
         return [{"name": name, "size": p.stat().st_size} for name, p in self._examples().items()]
@@ -271,10 +346,15 @@ class App:
         model = body.get("model") or "rules"
         if model not in ("rules", "auto", "qwen3:8b", "qwen3:30b"):
             raise ApiError(400, "modelo no permitido")
+        direct = self._direct(body.get("destination"))
+        if direct and all(t.path in direct for t in expected.targets):
+            model = "rules"   # nothing left to guess: no model needed
         try:
             draft = propose(rows, expected, model=model, name=Path(up["name"]).stem, recipes_dir=self.recipes_dir)
         except ollama.OllamaUnavailable as e:
             raise ApiError(503, f"el modelo local no responde: {e}") from None
+        if direct:
+            draft = self._direct_draft(draft, rows, expected, direct)
         previews = {t.path: self._preview(rows, draft["fields"][t.path], t) for t in expected.targets}
         with self.lock:
             up["draft"] = json.loads(json.dumps(draft))   # the server's own copy: provenance can't be edited
@@ -385,14 +465,19 @@ class Handler(BaseHTTPRequestHandler):
         return host in ("127.0.0.1", "localhost", "::1")
 
     def _guard(self, fn):
-        if not self._host_ok():
-            return self._send(403, {"error": "solo se admiten peticiones desde este equipo"})
         try:
-            return fn()
-        except ApiError as e:
-            return self._send(e.status, {"error": str(e)})
-        except Exception as e:  # never leak a traceback with data in it
-            return self._send(500, {"error": f"error interno: {type(e).__name__}"})
+            if not self._host_ok():
+                return self._send(403, {"error": "solo se admiten peticiones desde este equipo"})
+            try:
+                return fn()
+            except ApiError as e:
+                return self._send(e.status, {"error": str(e)})
+            except CLIENT_GONE:
+                raise
+            except Exception as e:  # never leak a traceback with data in it
+                return self._send(500, {"error": f"error interno: {type(e).__name__}"})
+        except CLIENT_GONE:   # the browser dropped the request (reload, another page): nobody to answer
+            self.close_connection = True
 
     def do_GET(self):
         self._guard(self._get)
@@ -404,6 +489,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         query = parse_qs(urlparse(self.path).query)
         routes = {"/api/health": self.app.health, "/api/destinations": self.app.list_destinations,
+                  "/api/formats": self.app.list_formats,
                   "/api/examples": self.app.list_examples, "/api/recipes": self.app.list_recipes}
         if path == "/api/expected":
             return self._send(200, self.app.get_expected((query.get("destination") or [None])[0]))
@@ -419,7 +505,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         routes = {"/api/upload": self.app.upload, "/api/propose": self.app.do_propose, "/api/field": self.app.field,
                   "/api/approve": self.app.approve, "/api/run": self.app.do_run,
-                  "/api/destination": self.app.upload_destination}
+                  "/api/destination": self.app.upload_destination, "/api/fields": self.app.source_fields,
+                  "/api/destination/fields": self.app.fields_destination}
         if path not in routes:
             raise ApiError(404, "no existe")
         length = int(self.headers.get("Content-Length") or 0)

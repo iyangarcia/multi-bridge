@@ -56,6 +56,10 @@ class Json(Format):
             return FHIR.destination(data, name, pack, options)
         return Destination(self.name, targets_from_example(obj, pack), template=obj)
 
+    def blank(self, fields, options):
+        from .tabular import _plain
+        return Destination(self.name, _plain(fields))   # one key per field, as named (no nesting on dots)
+
     def write(self, items, expected):
         return json_bytes([nest(item, expected) for item in items])
 
@@ -85,6 +89,7 @@ def _fixed(rtype: str, rel: list[str], key: str, parent: str) -> bool:
 class Fhir(Json):
     name, label, mime = "fhir", "HL7 FHIR", "application/fhir+json"
     joins = True
+    blank = Format.blank   # a standard message: its shape comes from an example, not a field list
     keyed_entities = {"Observation": ("code.coding.code", ["valueQuantity.value", "valueQuantity.unit",
                                                            "valueString", "valueCodeableConcept.text"])}
     unit_of = {"valueQuantity.value": "valueQuantity.unit"}

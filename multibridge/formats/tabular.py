@@ -31,6 +31,13 @@ def _columns(fmt: Format, data: bytes, name: str, pack) -> tuple[str, list]:
     return root, targets
 
 
+def _plain(fields: list[dict]) -> list:
+    """One column per field: the name is the header, never split into a nesting."""
+    from ..expected import Target
+    return [Target(path=f["name"], type=f["type"], required=f["required"], multiple=f["multiple"],
+                   segments=(f["name"],)) for f in fields]
+
+
 def _rows(items: list[dict], expected) -> tuple[list[str], list[list]]:
     extras = extra_names(items)
     header = [t.path for t in expected.targets] + extras
@@ -50,6 +57,12 @@ class Csv(Format):
         text, _ = csv_.decode(data)
         return Destination(self.name, targets, template={"delimiter": csv_.sniff_delimiter(text),
                                                          "bom": data.startswith(BOM)})
+
+    def blank(self, fields, options):
+        delimiter = options.get("delimiter", ",")
+        if delimiter not in csv_.DELIMITERS:
+            raise ValueError(f"separador no admitido: {delimiter!r}")
+        return Destination(self.name, _plain(fields), template={"delimiter": delimiter, "bom": False})
 
     def write(self, items, expected):
         tpl = expected.template or {}
@@ -89,6 +102,9 @@ class Excel(Format):
     def destination(self, data, name, pack, options):
         root, targets = _columns(self, data, name, pack)
         return Destination(self.name, targets, template={"sheet": root.rsplit(" (tabla", 1)[0][:31]})
+
+    def blank(self, fields, options):
+        return Destination(self.name, _plain(fields), template={"sheet": "Datos"})
 
     def write(self, items, expected):
         from openpyxl import Workbook

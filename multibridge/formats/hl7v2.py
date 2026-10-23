@@ -41,8 +41,13 @@ class Hl7v2(Format):
     }
 
     def sniff(self, data, name):
+        # "MSH|^~\&|": the field separator, 4 encoding characters (5 since v2.7) and the separator again.
+        # Not just "MSH": a CSV whose first header is "MSH-3" starts the same way.
         head = data[:64].lstrip(b"\xef\xbb\xbf\x0b \r\n\t")
-        return super().sniff(data, name) or head.startswith(b"MSH")
+        sep = head[3:4]
+        return super().sniff(data, name) or (
+            head[:3] == b"MSH" and len(sep) == 1 and not sep.isalnum() and sep not in b" \r\n"
+            and sep in (head[8:9], head[9:10]) and not any(chr(c).isalnum() for c in head[4:8]))
 
     def read(self, data, name):
         return hl7v2.parse(data, name)

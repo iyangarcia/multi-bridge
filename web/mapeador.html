@@ -26,7 +26,7 @@
     <div class="barra-superior">
       <div>
         <h1>Traducir datos</h1>
-        <div class="estado" id="estado">Elige los datos de origen y el destino: un ejemplo de cómo los quieres, en cualquier formato.</div>
+        <div class="estado" id="estado">Elige los datos de origen y el destino: un ejemplo de cómo los quieres, o solo el formato.</div>
       </div>
       <div class="confirmar-grupo">
         <label class="revisor">Revisado por
@@ -85,6 +85,13 @@
             <input type="file" id="file-destino" accept=".csv,.tsv,.txt,.json,.xlsx,.xml" multiple hidden>Subir un ejemplo…
           </label>
         </div>
+        <div class="destino-directo">
+          <span class="pista">…o elige solo el formato, sin ejemplo:</span>
+          <div class="formatos-directos" id="formatos-directos"></div>
+          <label class="casilla" title="Cada columna del origen pasa a ser un campo del destino, con su nombre y su tipo">
+            <input type="checkbox" id="todos-campos" checked> Recibir todos los campos del archivo
+          </label>
+        </div>
         <div class="proponente">
           <label>Quién propone
             <select id="proponente">
@@ -97,6 +104,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Destino a medida: formato + lista de campos -->
+    <details class="bloque-campos oculto" id="sec-campos" open>
+      <summary>Campos del destino <span class="num" id="n-campos">0</span> <span class="pista" id="campos-formato"></span></summary>
+      <p class="pista">Tu propio formato: cambia nombres y tipos, desmarca lo que no quieras recibir o añade campos nuevos
+        (se proponen desde el origen por su nombre). Pulsa «Aplicar» para usar la lista.</p>
+      <div class="tabla-campos" id="tabla-campos"></div>
+      <div class="acciones-campos">
+        <button class="boton secundario pequeno" id="btn-anadir-campo">+ Añadir campo</button>
+        <button class="boton secundario pequeno" id="btn-todos-marcar">Marcar todos</button>
+        <button class="boton secundario pequeno" id="btn-ninguno-marcar">Desmarcar todos</button>
+        <button class="boton pequeno" id="btn-aplicar-campos">Aplicar cambios</button>
+      </div>
+    </details>
 
     <div class="pensando oculto" id="pensando">
       <span class="girando" aria-hidden="true"></span>

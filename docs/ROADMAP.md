@@ -453,6 +453,37 @@ Started at the user's request ("start phase 6").
       variable fan-out (one AllergyIntolerance per allergy in a list); nested groups (one level only).
 - **Done when:** met for JSON, CSV, Excel, XML and FHIR destinations (HL7 v2 writing is in "Later").
 
+### Phase 6b: destination with no example — format + field list — done 2026-10-23
+Asked by the user: in the web app you couldn't make your own format, and going "anything → JSON"
+needed an example; it should be "press JSON + a box to receive every field of the file".
+- [x] `Format.blank(fields)`: JSON (one key per field, the name as typed, no nesting on dots),
+      CSV (`,` by default), Excel (sheet "Datos"), XML (`<registros><registro>`, names made valid
+      tags: "Nº Historia" → `No_Historia`). FHIR and HL7 v2 still need an example (a standard
+      message's shape can't come from a field list).
+- [x] `Expected.from_fields(format, fields, name)` with checks (names, duplicates, types, at most
+      500); same list → same `Expected.id`, so an approved recipe is reused for it.
+- [x] `fields_from_rows(rows)` ("recibir todos los campos"): every non-empty column, typed only where
+      no value can fail: dates → date; decimals → number; whole numbers only with a unit
+      (postcode, bed, version "2.3", sequence numbers stay text); identifiers, personal data and
+      format-declared codes stay text; datetimes stay text (no lost time); multi-value cells → list.
+- [x] API: `GET /api/formats`, `POST /api/fields`, `POST /api/destination/fields` (memory only,
+      `replace` to edit the same one). A field's `from` ties it to a column: the proposal takes it
+      as decided (`proposed_by: "direct"`, only transforms worked out); fields added by hand are
+      proposed by name; columns left out go through the usual carry/drop decision.
+- [x] Web: "…o elige solo el formato" (JSON / CSV / Excel / XML) + "Recibir todos los campos del
+      archivo"; a "Campos del destino" editor (receive or not, rename, type, required, add field,
+      mark/unmark all, apply). Direct fields arrive already reviewed. Works before or after the
+      source is loaded; switching format keeps the edits.
+- [x] Fixed on the way: a CSV whose first header is `MSH-3` was read as HL7 (the sniff now needs
+      `MSH|^~\&|`); a list target got `first` from the matcher and lost values; the server printed
+      a traceback when the browser dropped a request (`ConnectionAbortedError`, now ignored).
+- [x] `tests/test_field_list.py` (28 tests): 3 sources × 4 formats with every field, 8/8 rows,
+      output checked and read back. **234 tests pass**; the behaviour snapshot is identical to
+      phase 6. Browser check done (HL7 → JSON with renamed fields, Álvarez-Buylla → CSV → Excel);
+      test recipes deleted.
+- [ ] Not done: nesting from the field list (`cliente.nombre` → object), CSV separator choice in
+      the UI, saving a field list as a reusable destination file, editing transforms.
+
 ### Phase 7: first translation A — messy Excel → FHIR (clinical pack)
 - [ ] Destination example: a synthetic FHIR Bundle (Patient + Observation + AllergyIntolerance +
       Condition) in `expected/`.
@@ -511,6 +542,11 @@ Started at the user's request ("start phase 6").
 - Add the C1 rule ("never put real patient data in this repo") to `CLAUDE.md`. That's the user's file.
 
 ## 8. Session log (newest first, append only)
+
+- **2026-10-23 (night):** Phase 6b at the user's request: a destination can be just a format plus a
+  field list ("recibir todos los campos del archivo", editable: rename, retype, leave out, add).
+  JSON, CSV, Excel, XML; FHIR/HL7 still need an example. Fixed the HL7 sniff (`MSH-3` CSV header),
+  list targets losing values, and the dropped-connection traceback. 234 tests pass. Next: phase 7.
 
 - **2026-10-23:** Phase 6 done: destinations from an example in any format (JSON, CSV, Excel,
   XML, FHIR template), writers and checkers for all five, grouping (many rows → one item), list

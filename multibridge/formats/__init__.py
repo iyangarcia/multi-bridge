@@ -4,6 +4,7 @@ A plug-in knows a format's *structure*, nothing about what the data means (that 
 
     read(data, name)     bytes -> Dataset (tables of records + one Field per column/path)
     destination(...)     an example in this format -> Destination: target fields + a template
+    blank(fields, ...)   a plain field list -> Destination, for formats whose shape needs no example
     write(items, exp)    output items (output.py) -> bytes in this format, shaped like the example
     check(data)          problems that make `data` invalid in this format ([] = valid)
 
@@ -60,6 +61,15 @@ class Format:
 
     def destination(self, data: bytes, name: str, pack, options: dict) -> Destination:
         raise UnsupportedFormat(f"{self.label}: todavía no puede usarse como destino")
+
+    def blank(self, fields: list[dict], options: dict) -> Destination:
+        """A destination from a plain field list, no example: [{"name", "type", "required", "multiple"}].
+        One target per field, in order. Formats that need an example to know their shape don't have it."""
+        raise UnsupportedFormat(f"{self.label}: necesita un ejemplo de la salida")
+
+    @property
+    def can_blank(self) -> bool:
+        return type(self).blank is not Format.blank
 
     def write(self, items: list[dict], expected) -> bytes:
         raise NotImplementedError(f"{self.label}: no writer yet")

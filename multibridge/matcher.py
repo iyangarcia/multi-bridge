@@ -141,7 +141,8 @@ def transforms_for(rows: Rows, cols: list[str], t: Target, pack=None) -> tuple[l
         pending = True
         issues.append(mixed)
 
-    if len(cols) == 1 and any(isinstance(v, list) for v in values):   # join_columns already takes one per column
+    if len(cols) == 1 and any(isinstance(v, list) for v in values) and t.multiple != "list":
+        # (join_columns already takes one per column; a target that takes a list keeps them all)
         if t.multiple == "join":
             out.append({"op": "join_values", "sep": "; "})
         elif (sep := pack.joins_values(t, f.path)) is not None:

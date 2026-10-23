@@ -103,6 +103,16 @@ At approval every unused source column is either **carried** (`--carry`, or "Lle
 app) into the destination's slot for extras (a FHIR extension, an extra column, an XML element)
 or **dropped**, and the recipe records which and who decided.
 
+### Or just pick a format (no example)
+
+In the web app, "…o elige solo el formato" turns any source into **JSON, CSV, Excel or XML**
+without an example. With "Recibir todos los campos del archivo" every source column becomes a field
+with its own name; the "Campos del destino" list lets you rename, retype, leave out or add fields
+(added fields are proposed from the source by name). Dates come out as ISO dates and decimals as
+numbers; anything that could go wrong as a number (postcodes, IDs, phones, codes) stays text. FHIR
+and HL7 v2 still need an example, since their shape comes from the standard. These field-list
+destinations live in memory only, like uploaded examples.
+
 ### Map a hospital file onto the destination (command line)
 
 ```bash

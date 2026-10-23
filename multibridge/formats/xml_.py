@@ -12,6 +12,8 @@ Documents with a DOCTYPE are refused: no entity tricks (billion laughs, external
 from __future__ import annotations
 
 import copy
+import re
+import unicodedata
 import xml.etree.ElementTree as ET
 
 from ..model import Dataset, Field
@@ -89,6 +91,31 @@ class Xml(Format):
         return ds
 
     # -- destination ------------------------------------------------------------------------------
+    def blank(self, fields, options):
+        """<registros><registro><campo>…</campo>…</registro>…</registros>, one element per field.
+        Names that aren't valid element names are made valid ("Peso (kg)" -> "Peso_kg", "Nº" -> "No")."""
+        from ..expected import Target
+
+        record = ET.Element("registro")
+        targets, groups, seen = [], {}, set()
+        for f in fields:
+            ascii_ = unicodedata.normalize("NFKD", f["name"].strip()).encode("ascii", "ignore").decode()
+            tag = re.sub(r"[._-]*_[._-]*", "_", re.sub(r"[^A-Za-z0-9.-]+", "_", ascii_)).strip("_.-") or "campo"
+            if not re.match(r"[A-Za-z_]", tag) or tag.lower().startswith("xml"):
+                tag = "_" + tag
+            base, n = tag, 2
+            while tag in seen:
+                tag, n = f"{base}_{n}", n + 1
+            seen.add(tag)
+            ET.SubElement(record, tag).text = "-"
+            path = f"registro.{tag}"
+            if f["multiple"] == "list":
+                groups[path] = tag
+            targets.append(Target(path=path, type=f["type"], required=f["required"], multiple=f["multiple"],
+                                  segments=("registro", tag)))
+        return Destination(self.name, targets, template={"root": "registros", "root_attrib": {}, "record": record,
+                                                         "groups": groups})
+
     def destination(self, data, name, pack, options):
         from ..expected import target_from_column
         from ..profile import profile_field

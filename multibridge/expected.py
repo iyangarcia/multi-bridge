@@ -18,6 +18,9 @@ keys for the whole destination:
     "$fixed" / "$targets"  demote a target to a fixed value of the template, or the reverse
     "$extension_base"  base URL for custom fields carried into a standard format (as extensions)
 
+A destination can also come with no example: a format plus a plain list of fields
+(`Expected.from_fields`), typed by hand or taken from every column of a source (`fields_from_rows`).
+
 Changing either file changes `Expected.id`, so recipes approved for the old version stop
 matching (design doc §5). The pack is not part of the id: it helps propose, it doesn't change
 what the destination accepts.
@@ -37,6 +40,7 @@ OVERLAY_KEYS = {"type", "concept", "required", "enum", "pattern", "range", "unit
                 "description"}
 DESTINATION_KEYS = {"$pack", "$group_by", "$repeat", "$fixed", "$targets", "$extension_base"}
 DEFAULT_EXTENSION_BASE = "urn:multibridge:extension:"
+MAX_FIELDS = 500
 # Target attributes added after the first destinations: left out of the fingerprint while unset,
 # so recipes approved before them keep matching.
 NEWER = {"segments": None, "render": None, "group": None}
@@ -149,6 +153,31 @@ def targets_from_example(example, pack=None) -> list[Target]:
     return out
 
 
+def fields_from_rows(rows) -> list[dict]:
+    """Every non-empty source column as a destination field, typed from its profile ("receive all
+    the fields"). Typed only where it can't go wrong, the rest stays text, as it came:
+      - dates become dates (ISO in the output); a datetime stays text (a date would lose the time)
+      - decimals become numbers, and whole numbers only when the column has a unit ("Peso (kg)"):
+        a postcode, a bed, a version "2.3" or a sequence number are digits, not quantities
+      - identifiers, personal data and values a format declares as codes stay text
+      - yes/no stays text (s/n, sí/no... aren't all booleans to the engine)
+    The person can retype any field before using the list."""
+    from .formats import declared_kind
+
+    out = []
+    for c, f in rows.columns.items():
+        if f.dtype == "empty" or c.startswith("_"):
+            continue
+        plain = f.kind != "identifier" and not f.sensitive and declared_kind(f.declared_type) != "coded"
+        typ = ("date" if f.dtype == "date" else
+               "integer" if f.dtype == "integer" and plain and f.unit else
+               "number" if f.dtype == "decimal" and plain else "string")
+        many = any(isinstance(v, list) for v in rows.values(c))
+        out.append({"name": c, "type": typ, "required": False, "multiple": "list" if many else None, "from": c,
+                    "label": f.label, "description": f.description})
+    return out
+
+
 def default_destination(folder: str | Path = "expected") -> Path:
     """The destination to use when none is named: the only `*.example.*` in the folder."""
     found = sorted(Path(folder).glob("*.example.*"))
@@ -208,6 +237,37 @@ class Expected:
         pack = packs.get(options.get("$pack"))
         dest = formats.destination(data, filename, pack, options)
         return cls.build(dest, name or destination_name(filename), rules)
+
+    @classmethod
+    def from_fields(cls, fmt: str, fields: list[dict], name: str, options: dict | None = None) -> "Expected":
+        """A destination with no example: a format plus a list of fields [{"name", "type", "required"?,
+        "multiple"?}], typed by hand or taken from a source (fields_from_rows). The format plug-in
+        gives it its plain shape (formats.Format.blank)."""
+        from . import formats
+
+        if not isinstance(fields, list) or not fields:
+            raise ValueError("hace falta al menos un campo")
+        if len(fields) > MAX_FIELDS:
+            raise ValueError(f"demasiados campos (máximo {MAX_FIELDS})")
+        clean, names = [], set()
+        for n, f in enumerate(fields, start=1):
+            if not isinstance(f, dict):
+                raise ValueError(f"campo {n}: se espera un objeto")
+            fname = str(f.get("name") or "").strip()
+            if not fname or len(fname) > 200:
+                raise ValueError(f"campo {n}: hace falta un nombre (hasta 200 caracteres)")
+            if fname in names:
+                raise ValueError(f"campo repetido: {fname}")
+            names.add(fname)
+            typ = f.get("type") or "string"
+            if typ not in TYPES:
+                raise ValueError(f"{fname}: tipo desconocido {typ!r}")
+            multiple = f.get("multiple")
+            if multiple not in (None, "list", "join", "first"):
+                raise ValueError(f"{fname}: «multiple» no válido")
+            clean.append({"name": fname, "type": typ, "required": bool(f.get("required")), "multiple": multiple})
+        dest = formats.get(fmt).blank(clean, dict(options or {}))
+        return cls.build(dest, name)
 
     @classmethod
     def build(cls, dest, name: str, rules: dict | None = None, retarget=None) -> "Expected":
