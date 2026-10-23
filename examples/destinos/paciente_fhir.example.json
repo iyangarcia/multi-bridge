@@ -1,0 +1,38 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:paciente",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [{"system": "urn:centro:nhc", "value": "HC-0001"}],
+        "name": [{"use": "official", "family": "Garcia Lopez", "given": ["Ana"]}],
+        "gender": "female",
+        "birthDate": "1980-05-01",
+        "telecom": [{"system": "phone", "value": "+34600000000"}],
+        "address": [{"line": ["Calle Mayor 1"], "city": "Oviedo", "postalCode": "33001"}]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:peso",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "29463-7", "display": "Body weight"}]},
+        "subject": {"reference": "urn:uuid:paciente"},
+        "valueQuantity": {"value": 70.5, "unit": "kg", "system": "http://unitsofmeasure.org", "code": "kg"}
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:talla",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "8302-2", "display": "Body height"}]},
+        "subject": {"reference": "urn:uuid:paciente"},
+        "valueQuantity": {"value": 168, "unit": "cm", "system": "http://unitsofmeasure.org", "code": "cm"}
+      }
+    }
+  ]
+}

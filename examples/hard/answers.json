@@ -1,0 +1,1104 @@
+{
+  "h1_ingles_comas.csv": {
+    "plan": {
+      "paciente.id": {
+        "status": "mapped",
+        "from": [
+          "Patient ID"
+        ],
+        "transforms": []
+      },
+      "paciente.dni": {
+        "status": "no_data",
+        "from": [],
+        "transforms": []
+      },
+      "paciente.nombre": {
+        "status": "mapped",
+        "from": [
+          "First name"
+        ],
+        "transforms": []
+      },
+      "paciente.apellidos": {
+        "status": "mapped",
+        "from": [
+          "Last name"
+        ],
+        "transforms": []
+      },
+      "paciente.fecha_nacimiento": {
+        "status": "mapped",
+        "from": [
+          "DOB"
+        ],
+        "transforms": []
+      },
+      "paciente.sexo": {
+        "status": "mapped",
+        "from": [
+          "Gender"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "Female": "female",
+              "Male": "male",
+              "Unknown": "unknown"
+            }
+          }
+        ]
+      },
+      "paciente.telefono": {
+        "status": "mapped",
+        "from": [
+          "Mobile"
+        ],
+        "transforms": [
+          {
+            "op": "phone",
+            "country": "34"
+          }
+        ]
+      },
+      "direccion.calle": {
+        "status": "mapped",
+        "from": [
+          "Address"
+        ],
+        "transforms": []
+      },
+      "direccion.ciudad": {
+        "status": "mapped",
+        "from": [
+          "City"
+        ],
+        "transforms": []
+      },
+      "direccion.codigo_postal": {
+        "status": "mapped",
+        "from": [
+          "Zip"
+        ],
+        "transforms": [
+          {
+            "op": "pad",
+            "width": 5
+          }
+        ]
+      },
+      "datos_clinicos.grupo_sanguineo": {
+        "status": "mapped",
+        "from": [
+          "Blood type"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "A Rh+": "A+",
+              "O negativo": "O-",
+              "AB Rh+": "AB+"
+            }
+          }
+        ]
+      },
+      "datos_clinicos.peso_kg": {
+        "status": "mapped",
+        "from": [
+          "Weight (g)"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          },
+          {
+            "op": "scale",
+            "factor": 0.001
+          }
+        ]
+      },
+      "datos_clinicos.altura_cm": {
+        "status": "mapped",
+        "from": [
+          "Height (m)"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          },
+          {
+            "op": "scale",
+            "factor": 100
+          }
+        ]
+      },
+      "datos_clinicos.alergia": {
+        "status": "mapped",
+        "from": [
+          "Allergies"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.medico_responsable": {
+        "status": "mapped",
+        "from": [
+          "GP"
+        ],
+        "transforms": []
+      }
+    },
+    "records": [
+      {
+        "paciente": {
+          "id": "P-001",
+          "dni": null,
+          "nombre": "Ana",
+          "apellidos": "Pérez Gil",
+          "fecha_nacimiento": "1985-04-12",
+          "sexo": "female",
+          "telefono": "+34600112233"
+        },
+        "direccion": {
+          "calle": "Calle Uría, 12",
+          "ciudad": "Alicante",
+          "codigo_postal": "03001"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "A+",
+          "peso_kg": 65.5,
+          "altura_cm": 168,
+          "alergia": "Penicilina; Látex",
+          "medico_responsable": "Dr. Luis Prendes"
+        }
+      },
+      {
+        "paciente": {
+          "id": "P-002",
+          "dni": null,
+          "nombre": "Javier",
+          "apellidos": "Muñoz Fernández",
+          "fecha_nacimiento": "1960-11-05",
+          "sexo": "male",
+          "telefono": "+34600445566"
+        },
+        "direccion": {
+          "calle": "Av. Galicia 4",
+          "ciudad": "Gijón",
+          "codigo_postal": "33212"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "O-",
+          "peso_kg": 72.5,
+          "altura_cm": 172,
+          "alergia": null,
+          "medico_responsable": "Dra. Carmen Fueyo"
+        }
+      },
+      {
+        "paciente": {
+          "id": "P-003",
+          "dni": null,
+          "nombre": "Lucía María",
+          "apellidos": "Álvarez Castro",
+          "fecha_nacimiento": "2001-09-07",
+          "sexo": "female",
+          "telefono": "+34600778899"
+        },
+        "direccion": {
+          "calle": "C/ Mayor 1",
+          "ciudad": "Avilés",
+          "codigo_postal": "33402"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "AB+",
+          "peso_kg": 54,
+          "altura_cm": 160,
+          "alergia": "Marisco",
+          "medico_responsable": "Dra. Ana Rubiera"
+        }
+      }
+    ],
+    "rejected": [
+      {
+        "row": 3,
+        "field": "paciente.fecha_nacimiento"
+      }
+    ]
+  },
+  "h2_cifrado.csv": {
+    "plan": {
+      "paciente.id": {
+        "status": "mapped",
+        "from": [
+          "NHC"
+        ],
+        "transforms": []
+      },
+      "paciente.dni": {
+        "status": "no_data",
+        "from": [],
+        "transforms": []
+      },
+      "paciente.nombre": {
+        "status": "mapped",
+        "from": [
+          "NOM"
+        ],
+        "transforms": [
+          {
+            "op": "title"
+          }
+        ]
+      },
+      "paciente.apellidos": {
+        "status": "mapped",
+        "from": [
+          "APE1",
+          "APE2"
+        ],
+        "transforms": [
+          {
+            "op": "join_columns",
+            "sep": " "
+          },
+          {
+            "op": "title"
+          }
+        ]
+      },
+      "paciente.fecha_nacimiento": {
+        "status": "mapped",
+        "from": [
+          "FNAC"
+        ],
+        "transforms": [
+          {
+            "op": "date",
+            "from": "%d.%m.%Y"
+          }
+        ]
+      },
+      "paciente.sexo": {
+        "status": "mapped",
+        "from": [
+          "SX"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "M": "female",
+              "V": "male"
+            }
+          }
+        ]
+      },
+      "paciente.telefono": {
+        "status": "mapped",
+        "from": [
+          "TLF"
+        ],
+        "transforms": [
+          {
+            "op": "phone",
+            "country": "34"
+          }
+        ]
+      },
+      "direccion.calle": {
+        "status": "mapped",
+        "from": [
+          "DOM"
+        ],
+        "transforms": []
+      },
+      "direccion.ciudad": {
+        "status": "mapped",
+        "from": [
+          "LOC"
+        ],
+        "transforms": []
+      },
+      "direccion.codigo_postal": {
+        "status": "mapped",
+        "from": [
+          "CP"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.grupo_sanguineo": {
+        "status": "mapped",
+        "from": [
+          "GS"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "0-": "O-"
+            }
+          }
+        ]
+      },
+      "datos_clinicos.peso_kg": {
+        "status": "mapped",
+        "from": [
+          "PESO"
+        ],
+        "transforms": [
+          {
+            "op": "number",
+            "decimal": ","
+          }
+        ]
+      },
+      "datos_clinicos.altura_cm": {
+        "status": "mapped",
+        "from": [
+          "TALLA"
+        ],
+        "transforms": [
+          {
+            "op": "number",
+            "decimal": ","
+          },
+          {
+            "op": "scale",
+            "factor": 100
+          }
+        ]
+      },
+      "datos_clinicos.alergia": {
+        "status": "mapped",
+        "from": [
+          "ALERG"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.medico_responsable": {
+        "status": "mapped",
+        "from": [
+          "MED"
+        ],
+        "transforms": [
+          {
+            "op": "title"
+          }
+        ]
+      }
+    },
+    "records": [
+      {
+        "paciente": {
+          "id": "10001",
+          "dni": null,
+          "nombre": "Ana",
+          "apellidos": "Pérez Gil",
+          "fecha_nacimiento": "1985-04-12",
+          "sexo": "female",
+          "telefono": "+34600112233"
+        },
+        "direccion": {
+          "calle": "CALLE URÍA, 12",
+          "ciudad": "ALICANTE",
+          "codigo_postal": "03001"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "A+",
+          "peso_kg": 65.5,
+          "altura_cm": 168,
+          "alergia": "PENICILINA",
+          "medico_responsable": "Luis Prendes"
+        }
+      },
+      {
+        "paciente": {
+          "id": "10002",
+          "dni": null,
+          "nombre": "Javier",
+          "apellidos": "Muñoz Fernández",
+          "fecha_nacimiento": "1960-11-05",
+          "sexo": "male",
+          "telefono": "+34600445566"
+        },
+        "direccion": {
+          "calle": "AV. GALICIA 4",
+          "ciudad": "GIJÓN",
+          "codigo_postal": "33212"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "O-",
+          "peso_kg": 72.5,
+          "altura_cm": 172,
+          "alergia": null,
+          "medico_responsable": "Carmen Fueyo"
+        }
+      },
+      {
+        "paciente": {
+          "id": "10003",
+          "dni": null,
+          "nombre": "Lucía María",
+          "apellidos": "Álvarez Castro",
+          "fecha_nacimiento": "2001-09-07",
+          "sexo": "female",
+          "telefono": "+34600778899"
+        },
+        "direccion": {
+          "calle": "C/ MAYOR 1",
+          "ciudad": "AVILÉS",
+          "codigo_postal": "33402"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "AB+",
+          "peso_kg": 54,
+          "altura_cm": 160,
+          "alergia": "MARISCO",
+          "medico_responsable": "Ana Rubiera"
+        }
+      }
+    ],
+    "rejected": []
+  },
+  "h3_hl7_v25.hl7": {
+    "plan": {
+      "paciente.id": {
+        "status": "mapped",
+        "from": [
+          "PID-3.1 [PID-3.5=MR]"
+        ],
+        "transforms": []
+      },
+      "paciente.dni": {
+        "status": "mapped",
+        "from": [
+          "PID-3.1 [PID-3.5=NI]"
+        ],
+        "transforms": []
+      },
+      "paciente.nombre": {
+        "status": "mapped",
+        "from": [
+          "PID-5.2",
+          "PID-5.3"
+        ],
+        "transforms": [
+          {
+            "op": "join_columns",
+            "sep": " "
+          },
+          {
+            "op": "title"
+          }
+        ]
+      },
+      "paciente.apellidos": {
+        "status": "mapped",
+        "from": [
+          "PID-5.1"
+        ],
+        "transforms": [
+          {
+            "op": "title"
+          },
+          {
+            "op": "first"
+          }
+        ]
+      },
+      "paciente.fecha_nacimiento": {
+        "status": "mapped",
+        "from": [
+          "PID-7"
+        ],
+        "transforms": [
+          {
+            "op": "date",
+            "from": "%Y%m%d"
+          }
+        ]
+      },
+      "paciente.sexo": {
+        "status": "mapped",
+        "from": [
+          "PID-8"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "F": "female",
+              "M": "male"
+            }
+          }
+        ]
+      },
+      "paciente.telefono": {
+        "status": "mapped",
+        "from": [
+          "PID-13.7"
+        ],
+        "transforms": [
+          {
+            "op": "phone",
+            "country": "34"
+          }
+        ]
+      },
+      "direccion.calle": {
+        "status": "mapped",
+        "from": [
+          "PID-11.1"
+        ],
+        "transforms": [
+          {
+            "op": "first"
+          }
+        ]
+      },
+      "direccion.ciudad": {
+        "status": "mapped",
+        "from": [
+          "PID-11.3"
+        ],
+        "transforms": [
+          {
+            "op": "first"
+          }
+        ]
+      },
+      "direccion.codigo_postal": {
+        "status": "mapped",
+        "from": [
+          "PID-11.5"
+        ],
+        "transforms": [
+          {
+            "op": "first"
+          }
+        ]
+      },
+      "datos_clinicos.grupo_sanguineo": {
+        "status": "mapped",
+        "from": [
+          "ZBG-2"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "A POS": "A+",
+              "0 NEG": "O-"
+            }
+          }
+        ]
+      },
+      "datos_clinicos.peso_kg": {
+        "status": "mapped",
+        "from": [
+          "ZBG-3"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          }
+        ]
+      },
+      "datos_clinicos.altura_cm": {
+        "status": "mapped",
+        "from": [
+          "ZBG-4"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          }
+        ]
+      },
+      "datos_clinicos.alergia": {
+        "status": "mapped",
+        "from": [
+          "AL1-3.2"
+        ],
+        "transforms": [
+          {
+            "op": "join_values",
+            "sep": "; "
+          }
+        ]
+      },
+      "datos_clinicos.medico_responsable": {
+        "status": "mapped",
+        "from": [
+          "PV1-7.3",
+          "PV1-7.2"
+        ],
+        "transforms": [
+          {
+            "op": "join_columns",
+            "sep": " "
+          },
+          {
+            "op": "title"
+          }
+        ]
+      }
+    },
+    "records": [
+      {
+        "paciente": {
+          "id": "NHC-30001",
+          "dni": "12345678Z",
+          "nombre": "Ana",
+          "apellidos": "Pérez Gil",
+          "fecha_nacimiento": "1985-04-12",
+          "sexo": "female",
+          "telefono": "+34600112233"
+        },
+        "direccion": {
+          "calle": "Calle Uría, 12",
+          "ciudad": "Alicante",
+          "codigo_postal": "03001"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "A+",
+          "peso_kg": 65.5,
+          "altura_cm": 168,
+          "alergia": "Penicilina; Látex",
+          "medico_responsable": "Luis Prendes"
+        }
+      },
+      {
+        "paciente": {
+          "id": "NHC-30002",
+          "dni": null,
+          "nombre": "Javier",
+          "apellidos": "Muñoz Fernández",
+          "fecha_nacimiento": "1960-11-05",
+          "sexo": "male",
+          "telefono": "+34600445566"
+        },
+        "direccion": {
+          "calle": "Av. Galicia 4",
+          "ciudad": "Gijón",
+          "codigo_postal": "33212"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "O-",
+          "peso_kg": 72.5,
+          "altura_cm": 172,
+          "alergia": null,
+          "medico_responsable": "Carmen Fueyo"
+        }
+      },
+      {
+        "paciente": {
+          "id": "NHC-30003",
+          "dni": "53123456T",
+          "nombre": "Lucía María",
+          "apellidos": "Álvarez Castro",
+          "fecha_nacimiento": "2001-09-07",
+          "sexo": "female",
+          "telefono": "+34600778899"
+        },
+        "direccion": {
+          "calle": "C/ Mayor 1",
+          "ciudad": "Avilés",
+          "codigo_postal": "33402"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": null,
+          "peso_kg": null,
+          "altura_cm": null,
+          "alergia": "Marisco",
+          "medico_responsable": null
+        }
+      }
+    ],
+    "rejected": []
+  },
+  "h4_fhir_completo.json": {
+    "plan": {
+      "paciente.id": {
+        "status": "mapped",
+        "from": [
+          "identifier[nhc].value"
+        ],
+        "transforms": []
+      },
+      "paciente.dni": {
+        "status": "mapped",
+        "from": [
+          "identifier[dni].value"
+        ],
+        "transforms": []
+      },
+      "paciente.nombre": {
+        "status": "mapped",
+        "from": [
+          "name[official].given"
+        ],
+        "transforms": [
+          {
+            "op": "join_values",
+            "sep": " "
+          }
+        ]
+      },
+      "paciente.apellidos": {
+        "status": "mapped",
+        "from": [
+          "name[official].family"
+        ],
+        "transforms": []
+      },
+      "paciente.fecha_nacimiento": {
+        "status": "mapped",
+        "from": [
+          "birthDate"
+        ],
+        "transforms": []
+      },
+      "paciente.sexo": {
+        "status": "mapped",
+        "from": [
+          "gender"
+        ],
+        "transforms": []
+      },
+      "paciente.telefono": {
+        "status": "mapped",
+        "from": [
+          "telecom[phone-mobile].value"
+        ],
+        "transforms": []
+      },
+      "direccion.calle": {
+        "status": "mapped",
+        "from": [
+          "address.line"
+        ],
+        "transforms": []
+      },
+      "direccion.ciudad": {
+        "status": "mapped",
+        "from": [
+          "address.city"
+        ],
+        "transforms": []
+      },
+      "direccion.codigo_postal": {
+        "status": "mapped",
+        "from": [
+          "address.postalCode"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.grupo_sanguineo": {
+        "status": "no_data",
+        "from": [],
+        "transforms": []
+      },
+      "datos_clinicos.peso_kg": {
+        "status": "mapped",
+        "from": [
+          "Observation.valueQuantity.value [Observation.code.coding.code=29463-7]"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          }
+        ]
+      },
+      "datos_clinicos.altura_cm": {
+        "status": "mapped",
+        "from": [
+          "Observation.valueQuantity.value [Observation.code.coding.code=8302-2]"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          }
+        ]
+      },
+      "datos_clinicos.alergia": {
+        "status": "mapped",
+        "from": [
+          "AllergyIntolerance.code.text"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.medico_responsable": {
+        "status": "mapped",
+        "from": [
+          "generalPractitioner.display"
+        ],
+        "transforms": []
+      }
+    },
+    "records": [
+      {
+        "paciente": {
+          "id": "NHC-40001",
+          "dni": "12345678Z",
+          "nombre": "Ana",
+          "apellidos": "Pérez Gil",
+          "fecha_nacimiento": "1985-04-12",
+          "sexo": "female",
+          "telefono": "+34600112233"
+        },
+        "direccion": {
+          "calle": "Calle Uría, 12",
+          "ciudad": "Alicante",
+          "codigo_postal": "03001"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": null,
+          "peso_kg": 65.5,
+          "altura_cm": 168,
+          "alergia": "Penicilina",
+          "medico_responsable": "Dr. Luis Prendes"
+        }
+      },
+      {
+        "paciente": {
+          "id": "NHC-40002",
+          "dni": "87654321X",
+          "nombre": "Javier",
+          "apellidos": "Muñoz Fernández",
+          "fecha_nacimiento": "1960-11-05",
+          "sexo": "male",
+          "telefono": "+34600445566"
+        },
+        "direccion": {
+          "calle": "Av. Galicia 4",
+          "ciudad": "Gijón",
+          "codigo_postal": "33212"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": null,
+          "peso_kg": 72.5,
+          "altura_cm": 172,
+          "alergia": null,
+          "medico_responsable": "Dra. Carmen Fueyo"
+        }
+      }
+    ],
+    "rejected": [
+      {
+        "row": 2,
+        "field": "paciente.fecha_nacimiento"
+      }
+    ]
+  },
+  "h5_excel_dificil.xlsx": {
+    "plan": {
+      "paciente.id": {
+        "status": "mapped",
+        "from": [
+          "Identificación / NHC"
+        ],
+        "transforms": []
+      },
+      "paciente.dni": {
+        "status": "mapped",
+        "from": [
+          "Identificación / DNI"
+        ],
+        "transforms": []
+      },
+      "paciente.nombre": {
+        "status": "gap",
+        "why": "'Nombre completo' needs splitting into given name and surnames"
+      },
+      "paciente.apellidos": {
+        "status": "gap",
+        "why": "'Nombre completo' needs splitting into given name and surnames"
+      },
+      "paciente.fecha_nacimiento": {
+        "status": "mapped",
+        "from": [
+          "Identificación / Fecha nacimiento"
+        ],
+        "transforms": [
+          {
+            "op": "date",
+            "from": [
+              "%d/%m/%Y",
+              "%Y-%m-%d"
+            ]
+          }
+        ]
+      },
+      "paciente.sexo": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Sexo"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "Hombre": "male",
+              "Mujer": "female"
+            }
+          }
+        ]
+      },
+      "paciente.telefono": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Teléfono"
+        ],
+        "transforms": [
+          {
+            "op": "phone",
+            "country": "34"
+          }
+        ]
+      },
+      "direccion.calle": {
+        "status": "no_data",
+        "from": [],
+        "transforms": []
+      },
+      "direccion.ciudad": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Ciudad"
+        ],
+        "transforms": []
+      },
+      "direccion.codigo_postal": {
+        "status": "mapped",
+        "from": [
+          "Clínica / CP"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.grupo_sanguineo": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Grupo sanguíneo"
+        ],
+        "transforms": [
+          {
+            "op": "translate",
+            "values": {
+              "0-": "O-"
+            }
+          }
+        ]
+      },
+      "datos_clinicos.peso_kg": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Peso (kg)"
+        ],
+        "transforms": [
+          {
+            "op": "number",
+            "decimal": ","
+          }
+        ]
+      },
+      "datos_clinicos.altura_cm": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Altura (cm)"
+        ],
+        "transforms": [
+          {
+            "op": "number"
+          }
+        ]
+      },
+      "datos_clinicos.alergia": {
+        "status": "mapped",
+        "from": [
+          "Clínica / Alergias"
+        ],
+        "transforms": []
+      },
+      "datos_clinicos.medico_responsable": {
+        "status": "no_data",
+        "from": [],
+        "transforms": []
+      }
+    },
+    "records": [
+      {
+        "paciente": {
+          "id": "E-1",
+          "dni": "12345678Z",
+          "nombre": null,
+          "apellidos": null,
+          "fecha_nacimiento": "1985-04-12",
+          "sexo": "female",
+          "telefono": "+34600112233"
+        },
+        "direccion": {
+          "calle": null,
+          "ciudad": "Alicante",
+          "codigo_postal": "03001"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "A+",
+          "peso_kg": 65.5,
+          "altura_cm": 168,
+          "alergia": "Penicilina",
+          "medico_responsable": null
+        }
+      },
+      {
+        "paciente": {
+          "id": "E-2",
+          "dni": "87654321X",
+          "nombre": null,
+          "apellidos": null,
+          "fecha_nacimiento": "1960-11-05",
+          "sexo": "male",
+          "telefono": "+34600445566"
+        },
+        "direccion": {
+          "calle": null,
+          "ciudad": "Gijón",
+          "codigo_postal": "33212"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "O-",
+          "peso_kg": 72.5,
+          "altura_cm": 172,
+          "alergia": null,
+          "medico_responsable": null
+        }
+      },
+      {
+        "paciente": {
+          "id": "E-3",
+          "dni": "53123456T",
+          "nombre": null,
+          "apellidos": null,
+          "fecha_nacimiento": "2001-09-07",
+          "sexo": "female",
+          "telefono": "+34600778899"
+        },
+        "direccion": {
+          "calle": null,
+          "ciudad": "Avilés",
+          "codigo_postal": "33402"
+        },
+        "datos_clinicos": {
+          "grupo_sanguineo": "AB+",
+          "peso_kg": 54,
+          "altura_cm": 160,
+          "alergia": "Marisco",
+          "medico_responsable": null
+        }
+      }
+    ],
+    "rejected": []
+  }
+}

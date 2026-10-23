@@ -1,0 +1,347 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "a",
+        "identifier": [
+          {
+            "system": "urn:hospital:nhc",
+            "type": {
+              "coding": [
+                {
+                  "code": "MR"
+                }
+              ]
+            },
+            "value": "NHC-40001"
+          },
+          {
+            "system": "urn:es:dni",
+            "type": {
+              "coding": [
+                {
+                  "code": "NI"
+                }
+              ]
+            },
+            "value": "12345678Z"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Pérez Gil",
+            "given": [
+              "Ana"
+            ]
+          },
+          {
+            "use": "nickname",
+            "given": [
+              "Anita"
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "use": "home",
+            "value": "+34985111222"
+          },
+          {
+            "system": "phone",
+            "use": "mobile",
+            "value": "+34600112233"
+          },
+          {
+            "system": "email",
+            "value": "a@example.com"
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1985-04-12",
+        "address": [
+          {
+            "use": "home",
+            "line": [
+              "Calle Uría, 12"
+            ],
+            "city": "Alicante",
+            "postalCode": "03001",
+            "country": "ES"
+          }
+        ],
+        "generalPractitioner": [
+          {
+            "reference": "Practitioner/d1",
+            "display": "Dr. Luis Prendes"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "b",
+        "identifier": [
+          {
+            "system": "urn:hospital:nhc",
+            "type": {
+              "coding": [
+                {
+                  "code": "MR"
+                }
+              ]
+            },
+            "value": "NHC-40002"
+          },
+          {
+            "system": "urn:es:dni",
+            "type": {
+              "coding": [
+                {
+                  "code": "NI"
+                }
+              ]
+            },
+            "value": "87654321X"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Muñoz Fernández",
+            "given": [
+              "Javier"
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "use": "home",
+            "value": "+34985333444"
+          },
+          {
+            "system": "phone",
+            "use": "mobile",
+            "value": "+34600445566"
+          },
+          {
+            "system": "email",
+            "value": "b@example.com"
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1960-11-05",
+        "address": [
+          {
+            "use": "home",
+            "line": [
+              "Av. Galicia 4"
+            ],
+            "city": "Gijón",
+            "postalCode": "33212",
+            "country": "ES"
+          }
+        ],
+        "generalPractitioner": [
+          {
+            "reference": "Practitioner/d2",
+            "display": "Dra. Carmen Fueyo"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "c",
+        "identifier": [
+          {
+            "system": "urn:hospital:nhc",
+            "type": {
+              "coding": [
+                {
+                  "code": "MR"
+                }
+              ]
+            },
+            "value": "NHC-40003"
+          },
+          {
+            "system": "urn:es:dni",
+            "type": {
+              "coding": [
+                {
+                  "code": "NI"
+                }
+              ]
+            },
+            "value": "53123456T"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Álvarez Castro",
+            "given": [
+              "Lucía",
+              "María"
+            ]
+          },
+          {
+            "use": "nickname",
+            "given": [
+              "Lu"
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "use": "home",
+            "value": "+34985555666"
+          },
+          {
+            "system": "phone",
+            "use": "mobile",
+            "value": "+34600778899"
+          },
+          {
+            "system": "email",
+            "value": "c@example.com"
+          }
+        ],
+        "gender": "female",
+        "birthDate": "2001-09",
+        "address": [
+          {
+            "use": "home",
+            "line": [
+              "C/ Mayor 1"
+            ],
+            "city": "Avilés",
+            "postalCode": "33402",
+            "country": "ES"
+          }
+        ],
+        "generalPractitioner": [
+          {
+            "reference": "Practitioner/d3",
+            "display": "Dra. Ana Rubiera"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o1",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a"
+        },
+        "valueQuantity": {
+          "value": 65.5,
+          "unit": "kg"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o2",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a"
+        },
+        "valueQuantity": {
+          "value": 168,
+          "unit": "cm"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o3",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/b"
+        },
+        "valueQuantity": {
+          "value": 72.5,
+          "unit": "kg"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "o4",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/b"
+        },
+        "valueQuantity": {
+          "value": 172,
+          "unit": "cm"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "id": "al1",
+        "patient": {
+          "reference": "Patient/a"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "764146007"
+            }
+          ],
+          "text": "Penicilina"
+        }
+      }
+    }
+  ]
+}

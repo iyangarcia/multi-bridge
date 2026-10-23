@@ -1,0 +1,5 @@
+{
+  "$pack": "clinical",
+  "Nº historia": {"required": true},
+  "Sexo": {"enum": ["Hombre", "Mujer", "Otro", "Desconocido"]}
+}

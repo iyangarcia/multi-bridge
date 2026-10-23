@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pacientes>
+  <paciente nhc="HC-0001">
+    <nombre>Ana</nombre>
+    <apellidos>Garcia Lopez</apellidos>
+    <nacimiento>1980-05-01</nacimiento>
+    <telefonos>
+      <telefono>+34600000000</telefono>
+      <telefono>+34985000000</telefono>
+    </telefonos>
+    <alergias>Penicilina</alergias>
+  </paciente>
+</pacientes>

@@ -1,0 +1,4 @@
+{
+  "$pack": "clinical",
+  "paciente.@nhc": {"required": true}
+}

@@ -1,4 +1,5 @@
 {
+  "$pack": "clinical",
   "paciente.id": {"required": true, "description": "Identificador del paciente en el centro de origen (NHC, MRN)"},
   "paciente.dni": {"pattern": "([0-9]{8}|[XYZ][0-9]{7})[A-Z]", "description": "DNI o NIE"},
   "paciente.nombre": {"required": true, "case": "title"},

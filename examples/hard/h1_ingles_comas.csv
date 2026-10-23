@@ -1,0 +1,6 @@
+﻿Patient ID,First name,Last name,DOB,Gender,Mobile,Address,City,Zip,Blood type,Weight (g),Height (m),Allergies,GP
+P-001,Ana,Pérez Gil,1985-04-12,Female,600 11 22 33,"Calle Uría, 12",Alicante,3001,A Rh+,65500,1.68,"Penicilina; Látex",Dr. Luis Prendes
+P-002,Javier,Muñoz Fernández,1960-11-05,Male,600 44 55 66,Av. Galicia 4,Gijón,33212,O negativo,72500,1.72,,Dra. Carmen Fueyo
+P-003,Lucía María,Álvarez Castro,2001-09-07,Female,600 77 88 99,C/ Mayor 1,Avilés,33402,AB Rh+,54000,1.60,Marisco,Dra. Ana Rubiera
+P-004,Test,Fecha Imposible,1990-02-30,Unknown,600 00 00 00,C/ Falsa 1,Oviedo,33001,B+,80000,1.80,,Dr. Luis Prendes
+
