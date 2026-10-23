@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 def decode(data: bytes) -> tuple[str, str]:
-    """Hospital exports are UTF-8 or Windows-1252 in practice; try them in that order."""
+    """Exports are UTF-8 or Windows-1252 in practice; try them in that order."""
     try:
         return data.decode("utf-8-sig"), "utf-8"
     except UnicodeDecodeError:

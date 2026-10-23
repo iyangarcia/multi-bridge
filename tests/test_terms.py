@@ -1,6 +1,6 @@
 import pytest
 
-from multibridge.terms import get_normalizer
+from multibridge.packs.clinical.terms import get_normalizer
 
 N = get_normalizer()
 

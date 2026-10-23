@@ -77,9 +77,11 @@ def _discriminator(path: str, el: dict) -> str | None:
     """FHIR "slicing": tell repeated elements apart by system/use instead of by position."""
     last = path.rsplit(".", 1)[-1]
     if last == "telecom" and el.get("system"):
-        return el["system"]
+        return f"{el['system']}-{el['use']}" if el.get("use") else el["system"]   # telecom[phone-mobile]
     if last == "identifier" and el.get("system"):
         return _slug(el["system"])
+    if last == "name" and el.get("use"):
+        return el["use"]                     # name[official] vs name[nickname]: never mix them
     return None
 
 

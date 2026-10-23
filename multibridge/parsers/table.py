@@ -1,14 +1,14 @@
 """Find the real table(s) inside a spreadsheet-shaped grid.
 
-Hospital Excel/CSV exports are rarely "row 1 = header". Typical mess:
+Excel/CSV exports are rarely "row 1 = header". Typical mess:
 
-    Hospital de Cabueñes - Listado de ingresos        <- title (often merged)
-    Exportado: 12/03/2026 por SIH                     <- metadata
+    Tienda Centro - Listado de pedidos                <- title (often merged)
+    Exportado: 12/03/2026 por ERP                     <- metadata
                                                       <- blank
-    Paciente | Paciente | Antropometría | Clínica     <- group header (merged cells)
-    NHC      | Nombre   | Peso (kg)     | Diagnóstico <- real header
+    Cliente  | Cliente  | Envío         | Pedido      <- group header (merged cells)
+    Nº socio | Nombre   | Peso (kg)     | Producto    <- real header
     ...data...
-    Total pacientes: 6                                <- footer
+    Total pedidos: 6                                  <- footer
     Nota: datos sintéticos                            <- notes
     Código | Significado                              <- a second table on the same sheet
 
