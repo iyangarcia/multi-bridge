@@ -41,6 +41,8 @@ OVERLAY_KEYS = {"type", "concept", "required", "enum", "pattern", "range", "unit
 DESTINATION_KEYS = {"$pack", "$group_by", "$repeat", "$fixed", "$targets", "$extension_base"}
 DEFAULT_EXTENSION_BASE = "urn:multibridge:extension:"
 MAX_FIELDS = 500
+FIELDS_SUFFIX = ".fields.json"   # a saved field list: {"format": "csv", "fields": [{"name", "type", ...}]}
+FIELD_KEYS = ("name", "type", "required", "multiple")
 # Target attributes added after the first destinations: left out of the fingerprint while unset,
 # so recipes approved before them keep matching.
 NEWER = {"segments": None, "render": None, "group": None}
@@ -178,6 +180,15 @@ def fields_from_rows(rows) -> list[dict]:
     return out
 
 
+def save_fields(path: str | Path, fmt: str, fields: list[dict]) -> Path:
+    """Write a field list as `<name>.fields.json`: structure only (names and types), never values."""
+    p = Path(path)
+    spec = {"format": fmt, "fields": [{k: f.get(k) for k in FIELD_KEYS if f.get(k) not in (None, False)}
+                                      for f in fields]}
+    p.write_text(json.dumps(spec, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return p
+
+
 def default_destination(folder: str | Path = "expected") -> Path:
     """The destination to use when none is named: the only `*.example.*` in the folder."""
     found = sorted(Path(folder).glob("*.example.*"))
@@ -189,6 +200,8 @@ def default_destination(folder: str | Path = "expected") -> Path:
 
 def destination_name(filename: str) -> str:
     stem = Path(filename).name
+    if stem.endswith(FIELDS_SUFFIX):
+        return stem[: -len(FIELDS_SUFFIX)]
     stem = stem[: -len(Path(stem).suffix)] if Path(stem).suffix else stem
     return stem.removesuffix(".example")
 
@@ -320,9 +333,13 @@ class Expected:
 
     @classmethod
     def load(cls, example_path: str | Path, rules_path: str | Path | None = None) -> "Expected":
-        """Load an example output; picks up `<name>.rules.json` next to `<name>.example.<ext>` automatically."""
+        """Load an example output; picks up `<name>.rules.json` next to `<name>.example.<ext>` automatically.
+        A `<name>.fields.json` is a saved field list (no example)."""
         p = Path(example_path)
         name = destination_name(p.name)
+        if p.name.endswith(FIELDS_SUFFIX):
+            spec = json.loads(p.read_text(encoding="utf-8"))
+            return cls.from_fields(spec.get("format"), spec.get("fields"), name)
         if rules_path is None:
             sibling = p.with_name(f"{name}.rules.json")
             rules_path = sibling if sibling.exists() else None

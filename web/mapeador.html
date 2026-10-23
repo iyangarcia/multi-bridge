@@ -18,7 +18,7 @@
     <nav>
       <a href="index.html">Inicio</a>
       <a href="mapeador.html" class="activo">Traducir datos</a>
-      <a href="modelos.html">Destinos</a>
+      <a href="modelos.html">Formatos de destino</a>
     </nav>
   </header>
 
@@ -64,7 +64,12 @@
             <small>CSV · Excel · JSON · XML · HL7 v2 · FHIR — haz clic o arrastra. Se lee en este equipo.</small>
           </div>
         </label>
-        <div class="ejemplos-origen" id="ejemplos">Ejemplos sintéticos:</div>
+        <label class="ejemplos-origen">
+          <span class="ejemplos-icono" aria-hidden="true">✦</span>
+          <select id="sel-ejemplo" aria-label="Cargar un ejemplo sintético">
+            <option value="">…o prueba con un ejemplo sintético</option>
+          </select>
+        </label>
       </div>
       <div class="extremo-flecha" aria-hidden="true">→</div>
       <div class="extremo">
@@ -116,6 +121,13 @@
         <button class="boton secundario pequeno" id="btn-todos-marcar">Marcar todos</button>
         <button class="boton secundario pequeno" id="btn-ninguno-marcar">Desmarcar todos</button>
         <button class="boton pequeno" id="btn-aplicar-campos">Aplicar cambios</button>
+      </div>
+      <div class="guardar-formato">
+        <label>Guardar esta lista como formato de destino
+          <input type="text" id="nombre-guardar" placeholder="mi_formato" maxlength="40" autocomplete="off">
+        </label>
+        <button class="boton secundario pequeno" id="btn-guardar-formato">Guardar formato</button>
+        <span class="pista">Solo nombres y tipos de campo, nunca datos.</span>
       </div>
     </details>
 
@@ -206,6 +218,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="js/comun.js"></script>
+  <script src="js/campos.js"></script>
   <script src="js/mapeador.js"></script>
 </body>
 </html>

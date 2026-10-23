@@ -14,7 +14,6 @@ const estado = {
   ultimo: null,       // resultado de aprobar / reutilizar
   directo: null       // destino a medida: { formato, campos: [{ name, type, required, multiple, from, incluir }] }
 };
-const TIPOS = { string: "Texto", integer: "Entero", number: "Número", date: "Fecha", boolean: "Sí / No" };
 
 const ALTA = 0.85;
 const nivel = p => p === null || p === undefined ? "bajo" : p >= 0.85 ? "alto" : p >= 0.7 ? "medio" : "bajo";
@@ -35,6 +34,7 @@ function configurarSelector() {
 }
 
 async function subirArchivo(file) {
+  $("sel-ejemplo").value = "";
   try {
     pensando("Leyendo el archivo en este equipo…");
     await cargarSubida(await api("upload", { name: file.name, content_b64: await archivoABase64(file) }));
@@ -46,6 +46,23 @@ async function cargarEjemplo(nombre) {
     pensando("Leyendo el ejemplo…");
     await cargarSubida(await api("upload", { example: nombre }));
   } catch (e) { pensando(null); toast(e.message); }
+}
+
+// Ejemplos sintéticos: un solo desplegable, agrupado (los del reto primero)
+function pintarEjemplos(ejemplos) {
+  const sel = $("sel-ejemplo");
+  const grupos = new Map(["Hospitales del reto", "Otros ejemplos", "Datos difíciles"].map(g => [g, []]));
+  ejemplos.forEach(e => {
+    const info = describirEjemplo(e.name);
+    if (!grupos.has(info.grupo)) grupos.set(info.grupo, []);
+    grupos.get(info.grupo).push({ ...info, archivo: e.name });
+  });
+  sel.innerHTML = `<option value="">…o prueba con un ejemplo sintético</option>` + [...grupos.entries()].filter(([, l]) => l.length).map(([g, lista]) =>
+    `<optgroup label="${esc(g)}">${lista.map(x => `<option value="${esc(x.archivo)}">${esc(x.nombre)} · ${esc(x.formato)}</option>`).join("")}</optgroup>`).join("");
+  sel.onchange = () => {
+    if (!sel.value) return;
+    cargarEjemplo(sel.value);
+  };
 }
 
 async function cargarSubida(subida) {
@@ -471,7 +488,7 @@ function mostrarResultado(r, como) {
 async function pintarDestinos(elegido) {
   const lista = await api("destinations");
   const sel = $("sel-destino");
-  const origen = { carpeta: "", ejemplo: " · ejemplo", subido: " · subido", medida: " · a medida" };
+  const origen = { carpeta: "", ejemplo: " · ejemplo", subido: " · subido", medida: " · a medida", guardado: " · guardado" };
   sel.innerHTML = lista.map(d => `<option value="${esc(d.key)}">${esc(d.name)} · ${esc(d.label)} · ${d.fields} campos${origen[d.origin] || ""}</option>`).join("");
   const clave = elegido && lista.some(d => d.key === elegido) ? elegido : (lista[0] || {}).key;
   if (clave) await elegirDestino(clave, false);
@@ -509,22 +526,9 @@ async function subirDestino(files) {
   } catch (e) { pensando(null); toast(e.message); }
 }
 
-// ---------- Destino a medida: formato + lista de campos ----------
+// ---------- Destino a medida: formato + lista de campos (editor en campos.js) ----------
 async function pintarFormatos() {
-  const orden = ["json", "csv", "excel", "xml"];
-  const lista = (await api("formats")).filter(f => f.blank)
-    .sort((a, b) => (orden.indexOf(a.name) + 1 || 99) - (orden.indexOf(b.name) + 1 || 99));
-  const cont = $("formatos-directos");
-  cont.innerHTML = "";
-  lista.forEach(f => {
-    const b = document.createElement("button");
-    b.className = "boton secundario pequeno";
-    b.dataset.formato = f.name;
-    b.textContent = f.label;
-    b.title = `Salida en ${f.label} (${f.extension}) con los campos que elijas`;
-    b.onclick = () => elegirFormato(f.name);
-    cont.appendChild(b);
-  });
+  await pintarBotonesFormato($("formatos-directos"), elegirFormato);
 }
 
 async function elegirFormato(formato) {
@@ -553,66 +557,53 @@ async function camposDelOrigen() {
 }
 
 function anadirCampo() {
-  estado.directo.campos.push({ name: "", type: "string", required: false, multiple: null, from: null, incluir: true, nuevo: true });
+  estado.directo.campos.push(campoNuevo());
   pintarDirecto();
-  const entradas = $("tabla-campos").querySelectorAll("input.nombre-campo");
-  if (entradas.length) entradas[entradas.length - 1].focus();
+  enfocarUltimoCampo($("tabla-campos"));
 }
 
-async function aplicarCampos() {
+async function aplicarCampos(guardarComo) {
   const d = estado.directo;
   const usados = d.campos.filter(c => c.incluir && c.name.trim());
   if (!usados.length) { toast("Marca o añade al menos un campo"); pintarDirecto(); return; }
   try {
-    pensando("Preparando el destino…");
-    const cuerpo = { format: d.formato, fields: usados.map(c => ({ name: c.name.trim(), type: c.type, required: c.required,
-      multiple: c.multiple, from: c.from })) };
+    pensando(guardarComo ? "Guardando el formato…" : "Preparando el destino…");
+    const cuerpo = { format: d.formato, fields: camposParaEnviar(d.campos) };
     if (estado.subida) cuerpo.upload_id = estado.subida.upload_id;
-    if (d.clave) cuerpo.replace = d.clave;   // se sustituye la lista anterior, no se acumulan destinos
+    if (guardarComo) Object.assign(cuerpo, { save: true, name: guardarComo });
+    else if (d.clave && d.clave.startsWith("medida-")) cuerpo.replace = d.clave;   // se sustituye, no se acumulan
     const r = await api("destination/fields", cuerpo);
     d.clave = r.key;
     r.fields.forEach((f, i) => { usados[i].name = f.name; });   // XML: nombres convertidos en etiquetas válidas
     pensando(null);
     await pintarDestinos(r.key);
     pintarDirecto();
+    if (guardarComo) toast(`Formato «${r.name}» guardado: lo encontrarás en «Formatos de destino»`);
     if (estado.subida) await proponer();
-  } catch (e) { pensando(null); toast("No se puede usar esa lista: " + e.message); pintarDirecto(); }
+  } catch (e) { pensando(null); toast((guardarComo ? "No se pudo guardar: " : "No se puede usar esa lista: ") + e.message); pintarDirecto(); }
+}
+
+function guardarFormato() {
+  const nombre = $("nombre-guardar").value.trim();
+  if (!/^[A-Za-z0-9_-]{1,40}$/.test(nombre)) { toast("Nombre: letras, números, - y _ (sin espacios)"); $("nombre-guardar").focus(); return; }
+  aplicarCampos(nombre);
+}
+
+function contarCampos() {
+  $("n-campos").textContent = estado.directo ? estado.directo.campos.filter(c => c.incluir).length : 0;
 }
 
 function pintarDirecto() {
   const d = estado.directo;
-  document.querySelectorAll("#formatos-directos button").forEach(b =>
-    b.classList.toggle("activo", !!d && b.dataset.formato === d.formato));
+  marcarFormato($("formatos-directos"), d ? d.formato : null);
   $("sec-campos").classList.toggle("oculto", !d);
   if (!d) return;
-  $("n-campos").textContent = d.campos.filter(c => c.incluir).length;
+  contarCampos();
   $("campos-formato").textContent = `· ${FORMATOS[d.formato] || d.formato}`;
-  const tabla = $("tabla-campos");
-  if (!d.campos.length) {
-    tabla.innerHTML = `<p class="pista">${estado.subida ? "Sin campos todavía: añade el primero." : "Sube o elige unos datos de origen y sus campos aparecerán aquí."}</p>`;
-    return;
-  }
-  tabla.innerHTML = `<div class="fila-campo cab"><span>Recibir</span><span>Nombre en la salida</span><span>Tipo</span><span>Obligatorio</span><span>Sale de</span><span></span></div>`;
-  d.campos.forEach((c, i) => {
-    const fila = document.createElement("div");
-    fila.className = "fila-campo" + (c.incluir ? "" : " apagado");
-    const col = c.from && estado.subida ? columna(c.from) : null;
-    const origen = col ? humanoOrigen(col) : null;
-    fila.innerHTML = `
-      <span><input type="checkbox" class="incluir" ${c.incluir ? "checked" : ""} aria-label="Recibir este campo"></span>
-      <span><input type="text" class="nombre-campo" value="${esc(c.name)}" placeholder="nombre_del_campo" maxlength="200"></span>
-      <span><select class="tipo-campo">${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}" ${k === c.type ? "selected" : ""}>${v}</option>`).join("")}</select></span>
-      <span><input type="checkbox" class="obligatorio" ${c.required ? "checked" : ""} aria-label="Obligatorio"></span>
-      <span class="origen-campo" title="${esc(origen ? origen.tecnico : "")}">${origen ? esc(origen.nombre) + (c.multiple === "list" ? ' <i class="pista">· varios valores</i>' : "")
-        : '<i class="pista">nuevo · se propone por su nombre</i>'}</span>
-      <span>${c.nuevo ? '<button class="boton secundario pequeno quitar-campo" title="Quitar este campo">×</button>' : ""}</span>`;
-    fila.querySelector(".incluir").onchange = e => { c.incluir = e.target.checked; pintarDirecto(); };
-    fila.querySelector(".nombre-campo").oninput = e => { c.name = e.target.value; };
-    fila.querySelector(".tipo-campo").onchange = e => { c.type = e.target.value; };
-    fila.querySelector(".obligatorio").onchange = e => { c.required = e.target.checked; };
-    const quitarBtn = fila.querySelector(".quitar-campo");
-    if (quitarBtn) quitarBtn.onclick = () => { d.campos.splice(i, 1); pintarDirecto(); };
-    tabla.appendChild(fila);
+  pintarEditorCampos($("tabla-campos"), d.campos, {
+    origen: c => estado.subida && columna(c.from) ? humanoOrigen(columna(c.from)) : null,
+    alCambiar: contarCampos,
+    vacio: estado.subida ? "Sin campos todavía: añade el primero." : "Sube o elige unos datos de origen y sus campos aparecerán aquí."
   });
 }
 
@@ -634,7 +625,8 @@ async function iniciar() {
     base64ABytes(estado.ultimo.output.content_b64), estado.ultimo.output.mime);
   $("sel-destino").onchange = () => { estado.directo = null; pintarDirecto(); elegirDestino($("sel-destino").value); };
   $("btn-anadir-campo").onclick = anadirCampo;
-  $("btn-aplicar-campos").onclick = aplicarCampos;
+  $("btn-aplicar-campos").onclick = () => aplicarCampos();
+  $("btn-guardar-formato").onclick = guardarFormato;
   $("btn-todos-marcar").onclick = () => marcarTodos(true);
   $("btn-ninguno-marcar").onclick = () => marcarTodos(false);
   $("todos-campos").onchange = () => {
@@ -648,17 +640,7 @@ async function iniciar() {
     const q0 = new URLSearchParams(location.search);
     await pintarDestinos(q0.get("destino"));
     await pintarFormatos();
-    const ejemplos = await api("examples");
-    const cont = $("ejemplos");
-    ejemplos.forEach(e => {
-      const demo = HOSPITALES_DEMO.find(h => h.archivo === e.name);
-      const b = document.createElement("button");
-      b.className = "boton secundario pequeno";
-      b.textContent = demo ? `${demo.corto} · ${demo.formato}` : e.name.replace(/^hard\//, "difícil: ");
-      b.title = e.name;
-      b.onclick = () => cargarEjemplo(e.name);
-      cont.appendChild(b);
-    });
+    pintarEjemplos(await api("examples"));
     const salud = await api("health");
     const opciones = $("proponente").options;
     for (const op of opciones) {

@@ -102,6 +102,28 @@ const HOSPITALES_DEMO = [
 ];
 const FORMATOS = { csv: "CSV", excel: "Excel", fhir: "FHIR", json: "JSON", hl7v2: "HL7 v2", xml: "XML" };
 
+// Ejemplos sintéticos (examples/): nombre legible, grupo y formato por la extensión
+const EJEMPLOS = {
+  "huca_oviedo_hl7v23.hl7": ["Hospitales del reto", "HUCA (Oviedo)"],
+  "hospital_leon_fhir.json": ["Hospitales del reto", "H. de León", "FHIR"],
+  "hospital_alvarez_buylla.csv": ["Hospitales del reto", "H. Álvarez-Buylla (Mieres)"],
+  "hospital_a_diagnosticos.hl7": ["Otros ejemplos", "Diagnósticos"],
+  "hospital_b_condiciones.json": ["Otros ejemplos", "Condiciones", "FHIR"],
+  "hospital_c_messy.xlsx": ["Otros ejemplos", "Hoja desordenada"],
+  "hard/h1_ingles_comas.csv": ["Datos difíciles", "En inglés y con comas"],
+  "hard/h2_cifrado.csv": ["Datos difíciles", "Cabeceras en clave"],
+  "hard/h3_hl7_v25.hl7": ["Datos difíciles", "HL7 versión 2.5"],
+  "hard/h4_fhir_completo.json": ["Datos difíciles", "FHIR completo", "FHIR"],
+  "hard/h5_excel_dificil.xlsx": ["Datos difíciles", "Excel complicado"]
+};
+const FORMATO_EXTENSION = { hl7: "HL7 v2", json: "JSON", csv: "CSV", tsv: "CSV", txt: "texto", xlsx: "Excel", xml: "XML", ndjson: "JSON" };
+
+function describirEjemplo(archivo) {
+  const [grupo, nombre, formato] = EJEMPLOS[archivo] || [archivo.startsWith("hard/") ? "Datos difíciles" : "Otros ejemplos",
+    archivo.replace(/^hard\//, "").replace(/\.[^.]+$/, "").replace(/_/g, " ")];
+  return { grupo, nombre, formato: formato || FORMATO_EXTENSION[archivo.split(".").pop().toLowerCase()] || "" };
+}
+
 // ---------- Iconos (SVG en línea, heredan el color) ----------
 const svg = (d, t = 22) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONO = {

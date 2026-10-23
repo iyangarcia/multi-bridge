@@ -482,7 +482,34 @@ needed an example; it should be "press JSON + a box to receive every field of th
       phase 6. Browser check done (HL7 → JSON with renamed fields, Álvarez-Buylla → CSV → Excel);
       test recipes deleted.
 - [ ] Not done: nesting from the field list (`cliente.nombre` → object), CSV separator choice in
-      the UI, saving a field list as a reusable destination file, editing transforms.
+      the UI, editing transforms.
+
+### Phase 6c: "Formatos de destino" page — create and edit formats in the web app — done 2026-10-24
+Asked by the user: too many synthetic-example buttons; rename "Destinos"; let formats be made and
+changed from that page, not only by uploading a file in "Traducir datos".
+- [x] Saved field lists: `expected/<name>.fields.json` (`{"format", "fields": [{name, type, required?,
+      multiple?}]}`, structure only, no column ties, no values). `Expected.load` reads them, so the
+      CLI takes `--expected expected/<name>.fields.json`. Listed after the examples, so the default
+      destination is still `cdss_paciente`.
+- [x] API: `save` + `name` on `POST /api/destination/fields` (409 on a taken name; `replace` edits or
+      renames its own file), `GET /api/destination/fields` (a field-list destination's list, 409 for
+      ones made from an example), `POST /api/destination/delete` (saved lists and in-memory ones only;
+      examples are never overwritten or deleted from the app). Column ties are kept in memory per
+      destination (`App.ties`), also for a list saved right after building it from an upload.
+- [x] Page renamed **"Formatos de destino"** (nav on every page): cards of every format (format badge,
+      fields, where it comes from), the chosen one's fields, "Usar para traducir →", "Editar campos"
+      and "Eliminar" when it is a field list; "+ Crear formato" (name, JSON/CSV/Excel/XML, start
+      from the fields of a synthetic example or your own file, editor) and "Subir un ejemplo…".
+- [x] "Traducir datos": synthetic examples in one styled, grouped dropdown (Hospitales del reto /
+      Otros ejemplos / Datos difíciles) instead of 11 buttons; "Guardar formato" under the field
+      editor. The field editor is shared (`web/js/campos.js`).
+- [x] Fixed: `[hidden]` lost to an old `.campo-form input { display: block }` rule; now always wins.
+- [x] Tests: 9 more in `tests/test_field_list.py` (save, CLI load, ties, edit, rename, delete,
+      examples protected, plain names). **243 tests pass.** Browser check: create from an example's
+      fields, edit + rename, translate with it, save from "Traducir datos", delete; test files and
+      recipes removed.
+- [ ] Not done: editing a format made from an example in the page (it changes by changing the
+      example); duplicating one as a field list.
 
 ### Phase 7: first translation A — messy Excel → FHIR (clinical pack)
 - [ ] Destination example: a synthetic FHIR Bundle (Patient + Observation + AllergyIntolerance +
@@ -542,6 +569,11 @@ needed an example; it should be "press JSON + a box to receive every field of th
 - Add the C1 rule ("never put real patient data in this repo") to `CLAUDE.md`. That's the user's file.
 
 ## 8. Session log (newest first, append only)
+
+- **2026-10-24:** Phase 6c at the user's request: "Formatos de destino" page where formats are
+  created, edited, renamed and deleted (saved as `expected/<name>.fields.json`); examples in one
+  grouped dropdown; "Guardar formato" in "Traducir datos". 243 tests pass. The user's old server on
+  port 8766 was gone by now. Next: phase 7.
 
 - **2026-10-23 (night):** Phase 6b at the user's request: a destination can be just a format plus a
   field list ("recibir todos los campos del archivo", editable: rename, retype, leave out, add).

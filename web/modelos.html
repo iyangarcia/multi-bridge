@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Destinos · Multi Bridge</title>
+  <title>Formatos de destino · Multi Bridge</title>
   <link rel="icon" href="img/icono.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@400;500;600&display=swap" rel="stylesheet">
@@ -18,35 +18,88 @@
     <nav>
       <a href="index.html">Inicio</a>
       <a href="mapeador.html">Traducir datos</a>
-      <a href="modelos.html" class="activo">Destinos</a>
+      <a href="modelos.html" class="activo">Formatos de destino</a>
     </nav>
   </header>
 
-  <main class="pagina">
+  <main class="pagina formatos">
     <div class="pagina-cab">
       <div>
-        <h1>Destino: <span id="v-nombre"></span></h1>
-        <div class="sub">Así quiere recibir los datos quien los usa. Cualquier origen se traduce a esta ficha.</div>
+        <h1>Formatos de destino</h1>
+        <div class="sub">Cómo quieres recibir los datos. Elige uno para verlo, crea el tuyo aquí mismo o sube un ejemplo de la salida.</div>
       </div>
       <div class="fila-botones">
-        <a class="boton" href="mapeador.html">Traducir datos →</a>
+        <button class="boton" id="btn-crear">+ Crear formato</button>
+        <label class="boton secundario" title="Un ejemplo de cómo quieres los datos (y su .rules.json si lo tienes): se queda en memoria, no se guarda">
+          <input type="file" id="file-ejemplo" accept=".csv,.tsv,.txt,.json,.xlsx,.xml" multiple hidden>Subir un ejemplo…
+        </label>
       </div>
     </div>
 
-    <section id="vista-modelo">
+    <section class="lista-formatos" id="lista-formatos" aria-label="Formatos de destino"></section>
+
+    <!-- Crear / editar un formato con una lista de campos -->
+    <section class="editor-formato oculto" id="editor">
+      <div class="bloque-cab">
+        <h2 id="editor-titulo">Nuevo formato</h2>
+        <button class="boton secundario pequeno" id="btn-cancelar">Cancelar</button>
+      </div>
+      <div class="editor-filas">
+        <label class="campo-form">Nombre
+          <input type="text" id="e-nombre" placeholder="mi_formato" maxlength="40" autocomplete="off">
+          <small class="pista">Letras, números, - y _ (sin espacios)</small>
+        </label>
+        <div class="campo-form">Formato de salida
+          <div class="formatos-directos" id="e-formatos"></div>
+          <small class="pista">FHIR y HL7 v2 se definen con un ejemplo: súbelo con «Subir un ejemplo…».</small>
+        </div>
+        <div class="campo-form">Empezar con los campos de…
+          <div class="fila-botones-izq">
+            <select id="e-desde-ejemplo" aria-label="Tomar los campos de un ejemplo sintético">
+              <option value="">un ejemplo sintético…</option>
+            </select>
+            <label class="boton secundario pequeno">
+              <input type="file" id="e-desde-archivo" accept=".csv,.tsv,.txt,.json,.ndjson,.hl7,.xlsx,.xml" hidden>un archivo tuyo…
+            </label>
+          </div>
+          <small class="pista">Opcional. Solo se toman los nombres y tipos de las columnas; el archivo no se guarda.</small>
+        </div>
+      </div>
+      <div class="bloque-campos">
+        <div class="tabla-campos" id="e-campos"></div>
+        <div class="acciones-campos">
+          <button class="boton secundario pequeno" id="e-anadir">+ Añadir campo</button>
+          <button class="boton pequeno" id="e-guardar">Guardar formato</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-modelo" class="oculto">
+      <div class="bloque-cab vista-cab">
+        <div>
+          <h2 id="v-nombre"></h2>
+          <div class="sub" id="v-sub"></div>
+        </div>
+        <div class="fila-botones">
+          <button class="boton secundario pequeno oculto" id="btn-eliminar">Eliminar</button>
+          <button class="boton secundario pequeno oculto" id="btn-editar">Editar campos</button>
+          <a class="boton pequeno" id="btn-usar" href="mapeador.html">Usar para traducir →</a>
+        </div>
+      </div>
       <div class="ficha-modelo" id="v-campos"></div>
       <div class="leyenda-modelo"><span class="imprescindible-punto"></span> imprescindible · se entrega en <span id="v-formato"></span> · <span id="v-id"></span></div>
     </section>
 
     <details class="plegable probar">
-      <summary>Cómo se define</summary>
+      <summary>Cómo se define un formato</summary>
       <div class="sub">
-        Un destino sale de un <b>ejemplo</b> de cómo quieres los datos, en su propio formato (JSON, CSV, Excel, XML,
-        FHIR…: <code>expected/&lt;nombre&gt;.example.&lt;ext&gt;</code>), más unas <b>reglas</b> opcionales que un
-        ejemplo no puede mostrar: qué es obligatorio, valores permitidos, unidades, por qué campo agrupar
-        (<code>expected/&lt;nombre&gt;.rules.json</code>). La salida se escribe como el ejemplo: mismo anidamiento,
-        mismas fechas y decimales. Si cambias cualquiera de los dos, las recetas aprobadas para la versión anterior
-        dejan de aplicarse solas y hay que revisarlas de nuevo.
+        De dos maneras. Con una <b>lista de campos</b>: el formato (JSON, CSV, Excel o XML) y el nombre y tipo de cada
+        campo; se crea aquí y se guarda en <code>expected/&lt;nombre&gt;.fields.json</code>, solo con nombres y tipos.
+        O con un <b>ejemplo</b> de cómo quieres los datos, en su propio formato (también FHIR:
+        <code>expected/&lt;nombre&gt;.example.&lt;ext&gt;</code>), más unas <b>reglas</b> opcionales que un ejemplo no
+        puede mostrar: qué es obligatorio, valores permitidos, unidades, por qué campo agrupar
+        (<code>expected/&lt;nombre&gt;.rules.json</code>); la salida se escribe como el ejemplo. Si cambias un formato,
+        las recetas aprobadas para la versión anterior dejan de aplicarse solas y hay que revisarlas de nuevo.
       </div>
     </details>
   </main>
@@ -54,6 +107,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="js/comun.js"></script>
+  <script src="js/campos.js"></script>
   <script src="js/modelos.js"></script>
 </body>
 </html>

@@ -17,8 +17,11 @@ Endpoints (JSON):
     POST /api/destination {name, content_b64, rules?}    → an uploaded example of the output, any format
     GET  /api/formats                     formats a destination can be (and which need no example)
     POST /api/fields   {upload_id}        → every field of that source, typed: a starting field list
-    POST /api/destination/fields {format, fields, name?, upload_id?, delimiter?, replace?}
-                                          → a destination with no example; a field's "from" ties it to a column
+    POST /api/destination/fields {format, fields, name?, upload_id?, delimiter?, replace?, save?}
+                                          → a destination with no example; a field's "from" ties it to a column;
+                                            "save" writes expected/<name>.fields.json (names and types only)
+    GET  /api/destination/fields?destination=ID   a field-list destination's fields, to edit them
+    POST /api/destination/delete {key}    remove a saved field list or a destination in memory
     GET  /api/examples                    synthetic example files that can be loaded
     GET  /api/recipes                     approved recipes (summary)
     GET  /api/recipes/<name>              one approved recipe (download)
@@ -49,7 +52,7 @@ from .ai import ollama
 from .aiview import source_view
 from .engine import TransformError, field_value, run
 from . import formats, packs
-from .expected import Expected, destination_name, fields_from_rows
+from .expected import FIELDS_SUFFIX, Expected, destination_name, fields_from_rows, save_fields
 from .formats import FORMATS
 from .parsers import parse_bytes
 from .proposer import propose
@@ -79,11 +82,19 @@ class App:
         self.expected_dir = self.root / "expected"
         self.uploads: OrderedDict[str, dict] = OrderedDict()
         self.destinations: OrderedDict[str, dict] = OrderedDict()   # uploaded examples, memory only
+        self.ties: OrderedDict[str, dict] = OrderedDict()   # destination key -> {target: source column}, memory only
         self.lock = threading.Lock()
 
     # -- helpers ---------------------------------------------------------------------------------
     def _folder(self) -> dict[str, Path]:
-        return {destination_name(p.name): p for p in sorted(self.expected_dir.glob("*.example.*"))}
+        """Examples first (the first one is the default destination), then saved field lists."""
+        found = sorted(self.expected_dir.glob("*.example.*")) + sorted(self.expected_dir.glob("*" + FIELDS_SUFFIX))
+        return {destination_name(p.name): p for p in found}
+
+    def _saved(self, key: str | None) -> Path | None:
+        """The saved field list behind a destination key, if that is what it is."""
+        p = self._folder().get(key or "")
+        return p if p is not None and p.name.endswith(FIELDS_SUFFIX) else None
 
     def _example_destinations(self) -> dict[str, Path]:
         """Synthetic example destinations (examples/destinos/), to try other formats."""
@@ -183,14 +194,16 @@ class App:
                     e = Expected.load(path)
                 except (ValueError, KeyError):
                     continue
+                saved = path.name.endswith(FIELDS_SUFFIX)
                 out.append({"key": key, "name": e.name, "file": path.name, "format": e.format,
-                            "label": formats.get(e.format).label, "fields": len(e.targets), "origin": origin})
+                            "label": formats.get(e.format).label, "fields": len(e.targets),
+                            "origin": "guardado" if saved else origin, "editable": saved})
         with self.lock:
             for key, d in self.destinations.items():
                 e = d["expected"]
                 out.append({"key": key, "name": e.name, "file": d["file"], "format": e.format,
                             "label": formats.get(e.format).label, "fields": len(e.targets),
-                            "origin": "medida" if key.startswith("medida-") else "subido"})
+                            "origin": "medida" if key.startswith("medida-") else "subido", "editable": "fields" in d})
         return out
 
     def upload_destination(self, body: dict) -> dict:
@@ -229,15 +242,21 @@ class App:
     def fields_destination(self, body: dict) -> dict:
         """A destination from a format and a field list (no example). A field's "from" names the source
         column it comes from: the proposal then takes it as decided (the person chose it), not guessed.
-        Memory only, like uploaded examples."""
+
+        Memory only by default, like uploaded examples. With "save", it is written to
+        expected/<name>.fields.json: field names and types only, never values (C13)."""
         fmt = str(body.get("format") or "")
         if fmt not in FORMATS:
             raise ApiError(400, "formato desconocido")
         fields = body.get("fields")
         if not isinstance(fields, list):
             raise ApiError(400, "faltan los campos")
-        name = "".join(ch for ch in str(body.get("name") or "") if ch.isalnum() or ch in "-_")[:40] \
-            or f"a-medida-{fmt}"
+        save = bool(body.get("save"))
+        typed = str(body.get("name") or "").strip()
+        name = "".join(ch for ch in typed if ch.isalnum() or ch in "-_")[:40]
+        if save and (not name or name != typed):
+            raise ApiError(400, "el nombre del formato solo puede tener letras, números, - y _ (hasta 40)")
+        name = name or f"a-medida-{fmt}"
         options = {"delimiter": body["delimiter"]} if body.get("delimiter") else {}
         try:
             e = Expected.from_fields(fmt, fields, name, options)
@@ -248,19 +267,64 @@ class App:
         columns = self._upload(body["upload_id"])["rows"].columns if body.get("upload_id") else {}
         direct = {t.path: f["from"] for f, t in zip(fields, e.targets)
                   if isinstance(f.get("from"), str) and f["from"] in columns}
-        with self.lock:   # editing the list again replaces the same destination instead of piling up new ones
-            key = body.get("replace") if str(body.get("replace") or "").startswith("medida-") \
-                and body["replace"] in self.destinations else "medida-" + secrets.token_urlsafe(8)
-            self.destinations[key] = {"file": f"a medida ({formats.get(fmt).label})", "expected": e, "direct": direct}
-            while len(self.destinations) > MAX_UPLOADS:
-                self.destinations.popitem(last=False)
-        return {**self.get_expected(key),
-                "fields": [{"name": t.leaf, "type": t.type, "required": t.required, "multiple": t.multiple,
-                            "from": direct.get(t.path)} for t in e.targets]}
+        replace = str(body.get("replace") or "")
+        listed = [{"name": t.leaf, "type": t.type, "required": t.required, "multiple": t.multiple} for t in e.targets]
+        if save:
+            key = name
+            taken = self._folder().get(name)
+            if taken is not None and (not taken.name.endswith(FIELDS_SUFFIX) or name != replace):
+                raise ApiError(409, f"ya hay un destino llamado {name}: elige otro nombre")
+            self.expected_dir.mkdir(exist_ok=True)
+            save_fields(self.expected_dir / f"{name}{FIELDS_SUFFIX}", fmt, listed)
+            old = self._saved(replace)
+            if old is not None and replace != name:   # renamed: the old file goes
+                old.unlink()
+        else:
+            with self.lock:   # editing the list again replaces the same destination instead of piling up new ones
+                key = replace if replace.startswith("medida-") and replace in self.destinations \
+                    else "medida-" + secrets.token_urlsafe(8)
+                self.destinations[key] = {"file": f"a medida ({formats.get(fmt).label})", "expected": e,
+                                          "fields": listed}
+                while len(self.destinations) > MAX_UPLOADS:
+                    self.destinations.popitem(last=False)
+        with self.lock:
+            self.ties[key] = direct
+            while len(self.ties) > MAX_UPLOADS:
+                self.ties.popitem(last=False)
+        return {**self.get_expected(key), "fields": [{**f, "from": direct.get(t.path)} for f, t in zip(listed, e.targets)]}
+
+    def destination_fields(self, dest: str | None) -> dict:
+        """The field list of a destination made from one (to edit it). Destinations made from an example
+        have none: they change by changing the example."""
+        e = self.expected(dest)
+        saved = self._saved(dest)
+        with self.lock:
+            mem = self.destinations.get(dest or "") or {}
+        if saved is None and "fields" not in mem:
+            raise ApiError(409, "este destino sale de un ejemplo: para cambiarlo, cambia o sube el ejemplo")
+        fields = mem.get("fields") or json.loads(saved.read_text(encoding="utf-8"))["fields"]
+        return {"key": dest, "name": e.name, "format": e.format, "saved": saved is not None,
+                "fields": [{k: f.get(k, False if k == "required" else None) for k in ("name", "type", "required", "multiple")}
+                           for f in fields]}
+
+    def delete_destination(self, body: dict) -> dict:
+        """Remove a saved field list or a destination kept in memory. Examples in the folder are files
+        the user manages; they are never deleted from here."""
+        key = str(body.get("key") or "")
+        saved = self._saved(key)
+        with self.lock:
+            in_memory = self.destinations.pop(key, None)
+            self.ties.pop(key, None)
+        if saved is not None:
+            saved.unlink()
+        elif in_memory is None:
+            raise ApiError(404 if key not in self._folder() and key not in self._example_destinations() else 409,
+                           "solo se pueden quitar formatos hechos con una lista de campos o subidos")
+        return {"deleted": key}
 
     def _direct(self, dest: str | None) -> dict[str, str]:
         with self.lock:
-            return dict((self.destinations.get(dest or "") or {}).get("direct") or {})
+            return dict(self.ties.get(dest or "") or {})
 
     @staticmethod
     def _direct_draft(draft: dict, rows: Rows, expected: Expected, direct: dict[str, str]) -> dict:
@@ -493,6 +557,8 @@ class Handler(BaseHTTPRequestHandler):
                   "/api/examples": self.app.list_examples, "/api/recipes": self.app.list_recipes}
         if path == "/api/expected":
             return self._send(200, self.app.get_expected((query.get("destination") or [None])[0]))
+        if path == "/api/destination/fields":
+            return self._send(200, self.app.destination_fields((query.get("destination") or [None])[0]))
         if path in routes:
             return self._send(200, routes[path]())
         if path.startswith("/api/recipes/"):
@@ -506,7 +572,8 @@ class Handler(BaseHTTPRequestHandler):
         routes = {"/api/upload": self.app.upload, "/api/propose": self.app.do_propose, "/api/field": self.app.field,
                   "/api/approve": self.app.approve, "/api/run": self.app.do_run,
                   "/api/destination": self.app.upload_destination, "/api/fields": self.app.source_fields,
-                  "/api/destination/fields": self.app.fields_destination}
+                  "/api/destination/fields": self.app.fields_destination,
+                  "/api/destination/delete": self.app.delete_destination}
         if path not in routes:
             raise ApiError(404, "no existe")
         length = int(self.headers.get("Content-Length") or 0)

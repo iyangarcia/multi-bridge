@@ -201,7 +201,9 @@ recognised as ICD-10", from the pack's normalizer), never the raw text, which ca
   controller's job (for health: the clinical record under Ley 41/2002), not ours.
 - ✅ Web app (`api.py`): uploads, source files and destination examples alike, are kept in memory
   only (the last 10 of each), never written to disk (an example of the output can hold a real record);
-  so are field-list destinations (a format plus field names, which can be a source's column names);
+  so are field-list destinations (a format plus field names, which can be a source's column names)
+  until the person saves one: then `expected/<name>.fields.json` holds field names and types only,
+  never values or which column fed which field;
   converted data goes back to the browser for download, not to `out/`. Recipes saved to `recipes/`
   hold structure only.
 - ❌ CLI: configurable automatic deletion of `out/` after delivery.

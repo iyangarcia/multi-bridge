@@ -186,3 +186,78 @@ def test_a_dropped_connection_is_not_answered():
     h = Gone()
     h._guard(lambda: h._send(200, {}))
     assert h.sent == [200] and h.close_connection is True   # no second attempt with a 500
+
+
+# -- saved field lists (expected/<name>.fields.json), made in the web app ---------------------------
+
+def test_a_saved_list_is_a_destination_like_any_other(app):
+    up = app.upload({"example": "hospital_alvarez_buylla.csv"})
+    fields = [{"name": "Nombre", "type": "string", "from": "Nombre"},
+              {"name": "F. Nacimiento", "type": "date", "required": True, "from": "F. Nacimiento"}]
+    d = app.fields_destination({"format": "csv", "fields": fields, "name": "mi_tabla", "save": True,
+                                "upload_id": up["upload_id"]})
+    path = app.expected_dir / "mi_tabla.fields.json"
+    assert d["key"] == "mi_tabla" and path.is_file()
+    spec = json.loads(path.read_text(encoding="utf-8"))
+    assert spec == {"format": "csv", "fields": [{"name": "Nombre", "type": "string"},
+                                                {"name": "F. Nacimiento", "type": "date", "required": True}]}
+    assert "from" not in path.read_text(encoding="utf-8")       # structure only: no ties, no values
+    listed = {x["key"]: x for x in app.list_destinations()}
+    assert listed["mi_tabla"]["origin"] == "guardado" and listed["mi_tabla"]["editable"]
+    assert listed["cdss_paciente"]["editable"] is False
+    assert app.list_destinations()[0]["key"] == "cdss_paciente"     # the default destination is still the example
+    assert Expected.load(path).id == app.expected("mi_tabla").id   # the CLI reads it too
+    # just made from this upload: the ties are decided; later uploads are proposed by name
+    prop, ok = accept(app, up, d)
+    assert {f["proposed_by"] for f in prop["draft"]["fields"].values()} == {"direct"}
+    assert ok["output"]["problems"] == [] and ok["recipe"]["recipe"].endswith("-mi_tabla")
+    again = app.upload({"example": "hospital_alvarez_buylla.csv"})
+    prop2 = app.do_propose({"upload_id": again["upload_id"], "destination": "mi_tabla", "model": "rules"})
+    assert prop2["draft"]["fields"]["Nombre"]["from"] == ["Nombre"]
+
+
+def test_edit_rename_and_delete_a_saved_list(app):
+    app.fields_destination({"format": "json", "fields": [{"name": "a"}], "name": "uno", "save": True})
+    got = app.destination_fields("uno")
+    assert got["saved"] and got["fields"] == [{"name": "a", "type": "string", "required": False, "multiple": None}]
+    with pytest.raises(ApiError) as e:   # same name without saying it's the one being edited
+        app.fields_destination({"format": "json", "fields": [{"name": "a"}], "name": "uno", "save": True})
+    assert e.value.status == 409
+    app.fields_destination({"format": "xml", "fields": [{"name": "a"}, {"name": "b"}], "name": "uno", "save": True,
+                            "replace": "uno"})
+    assert app.expected("uno").format == "xml"
+    app.fields_destination({"format": "xml", "fields": [{"name": "a"}], "name": "dos", "save": True, "replace": "uno"})
+    assert not (app.expected_dir / "uno.fields.json").exists() and (app.expected_dir / "dos.fields.json").exists()
+    assert app.delete_destination({"key": "dos"}) == {"deleted": "dos"}
+    assert not (app.expected_dir / "dos.fields.json").exists()
+
+
+def test_examples_are_never_overwritten_or_deleted_from_the_app(app):
+    before = (app.expected_dir / "cdss_paciente.example.json").read_bytes()
+    with pytest.raises(ApiError) as e:
+        app.fields_destination({"format": "json", "fields": [{"name": "a"}], "name": "cdss_paciente", "save": True,
+                                "replace": "cdss_paciente"})
+    assert e.value.status == 409
+    for key in ("cdss_paciente", "ejemplo-paciente_fhir"):
+        with pytest.raises(ApiError) as e:
+            app.delete_destination({"key": key})
+        assert e.value.status == 409
+    with pytest.raises(ApiError) as e:
+        app.destination_fields("cdss_paciente")   # made from an example: changed by changing the example
+    assert e.value.status == 409
+    assert (app.expected_dir / "cdss_paciente.example.json").read_bytes() == before
+
+
+@pytest.mark.parametrize("name", ["", "con espacio", "../fuera", "a" * 41, "nombre.json"])
+def test_saved_names_are_plain(app, name):
+    with pytest.raises(ApiError) as e:
+        app.fields_destination({"format": "json", "fields": [{"name": "a"}], "name": name, "save": True})
+    assert e.value.status == 400
+    assert list(app.expected_dir.glob("*.fields.json")) == []
+
+
+def test_a_list_in_memory_can_be_edited_and_removed(app):
+    d = app.fields_destination({"format": "csv", "fields": [{"name": "a", "type": "date"}]})
+    assert app.destination_fields(d["key"])["fields"][0]["type"] == "date"
+    assert app.delete_destination({"key": d["key"]}) == {"deleted": d["key"]}
+    assert d["key"] not in {x["key"] for x in app.list_destinations()}

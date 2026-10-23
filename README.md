@@ -110,8 +110,12 @@ without an example. With "Recibir todos los campos del archivo" every source col
 with its own name; the "Campos del destino" list lets you rename, retype, leave out or add fields
 (added fields are proposed from the source by name). Dates come out as ISO dates and decimals as
 numbers; anything that could go wrong as a number (postcodes, IDs, phones, codes) stays text. FHIR
-and HL7 v2 still need an example, since their shape comes from the standard. These field-list
-destinations live in memory only, like uploaded examples.
+and HL7 v2 still need an example, since their shape comes from the standard.
+
+A field list lives in memory until you save it ("Guardar formato"). The **Formatos de destino** page
+lists every format and lets you create one from scratch (or from the column names of any file),
+edit, rename or delete it; saved lists go to `expected/<name>.fields.json` with names and types
+only, and the CLI accepts them as `--expected`.
 
 ### Map a hospital file onto the destination (command line)
 
