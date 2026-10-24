@@ -129,7 +129,8 @@ class App:
         out = {}
         for folder in (self.root / "examples", self.root / "examples" / "hard", self.root / "examples" / "pedidos"):
             for p in sorted(folder.glob("*")):
-                if p.suffix.lower() in EXAMPLE_SUFFIXES and p.name not in NOT_EXAMPLES:
+                if p.suffix.lower() in EXAMPLE_SUFFIXES and p.name not in NOT_EXAMPLES \
+                        and not p.name.startswith("~$"):   # Excel's lock file while a workbook is open
                     out[p.relative_to(self.root / "examples").as_posix()] = p
         return out
 

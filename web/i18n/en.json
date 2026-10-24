@@ -141,6 +141,7 @@
     "personalizado": "custom",
     "dato personal": "personal data",
     "Llevar": "Carry",
+    "descartados": "dropped",
     "Viaja como campo extra del destino; si no, se descarta y queda anotado": "Travels as an extra destination field; otherwise it is dropped and recorded",
     "Al leer el archivo:": "When reading the file:",
     "Registros apartados (no cumplen tu formato, no se corrigen solos):": "Records set aside (they don't meet your format and are not fixed automatically):",

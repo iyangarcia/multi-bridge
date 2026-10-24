@@ -44,7 +44,8 @@ def package_files(wheels: Path) -> list[tuple[str, Path]]:
     out = [(p.relative_to(ROOT).as_posix(), p) for p in sorted((ROOT / "multibridge").rglob("*"))
            if p.is_file() and "__pycache__" not in p.parts]
     out += [(p.relative_to(ROOT).as_posix(), p) for p in sorted((ROOT / "examples").rglob("*"))
-            if p.is_file() and p.suffix != ".py" and "__pycache__" not in p.parts]
+            if p.is_file() and p.suffix != ".py" and "__pycache__" not in p.parts
+            and not p.name.startswith("~$")]   # Excel's lock file while a workbook is open
     out += [(p.relative_to(ROOT).as_posix(), p) for p in sorted((ROOT / "expected").iterdir())
             if p.is_file() and (".example." in p.name or p.name.endswith(".rules.json"))]
     out += [(p.relative_to(wheels).as_posix(), p) for p in sorted(wheels.rglob("*")) if p.is_file()]

@@ -274,17 +274,15 @@ health data is detected. In short:
 
 - `packs/clinical/terms/seed_es.py` is a **demo seed** of about 30 ICD-10 categories. Before real use, load the
   official CIE-10-ES release and/or SNOMED CT (free in Spain as a SNOMED member country).
-- Fuzzy `similarity` is a string similarity, **not a calibrated probability**. Calibration
-  needs a labelled evaluation set (see the design doc).
-- The proposer's `confidence` is a rules similarity, **not a calibrated probability** either.
-- Splitting a combined "Nombre y apellidos" column is not supported yet: the matcher marks it
-  *pending*.
+- The proposer's `confidence` is a hand-weighted score. What each score has meant is measured on
+  **synthetic** files ([docs/CALIBRATION.md](docs/CALIBRATION.md)); real exports can be harder. The
+  terminology's fuzzy `similarity` is not calibrated.
 - Writers and checkers exist for JSON, CSV, Excel, XML and FHIR; not for HL7 v2 yet. The FHIR
   checker covers structure, references and a few required elements, it is not the official
-  validator. Without a pack, only fields with near-identical names are matched by the rules; the AI
-  proposer helps more there.
-- Repeated groups are one level deep, and a template has a fixed number of parts per item (one
-  AllergyIntolerance per allergy in a list isn't supported yet).
+  validator.
+- Without a domain pack, the rules match column names word by word and leave abbreviations and
+  guesses for the reviewer; the AI proposer helps more there.
+- Repeated groups are one level deep.
 - In the web app you can change a field's column, but not edit its transforms (a translation table, a date format) yet. For that, edit the draft recipe JSON.
 - All data in `examples/` is synthetic.
 

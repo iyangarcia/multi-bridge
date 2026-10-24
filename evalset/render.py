@@ -81,11 +81,15 @@ def xlsx_file(cols: list[Column], r, title: str) -> tuple[bytes, dict, dict[str,
 
 
 def _fixed_zip(data: bytes) -> bytes:
-    """The same workbook bytes for the same seed: every zip entry gets a fixed timestamp."""
+    """The same workbook bytes for the same seed: every zip entry gets a fixed timestamp, and so does the
+    workbook's "modified" property (openpyxl sets it to now on every save)."""
     out = io.BytesIO()
     with zipfile.ZipFile(io.BytesIO(data)) as src, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
         for info in src.infolist():
-            dst.writestr(zipfile.ZipInfo(info.filename, date_time=(2026, 1, 1, 0, 0, 0)), src.read(info.filename),
+            content = src.read(info.filename)
+            if info.filename == "docProps/core.xml":
+                content = re.sub(rb"(<dcterms:modified[^>]*>)[^<]*", rb"\g<1>2026-01-01T00:00:00Z", content)
+            dst.writestr(zipfile.ZipInfo(info.filename, date_time=(2026, 1, 1, 0, 0, 0)), content,
                          compress_type=zipfile.ZIP_DEFLATED)
     return out.getvalue()
 
