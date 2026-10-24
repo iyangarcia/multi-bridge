@@ -21,3 +21,4 @@ include = ["multibridge*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]   # evalset/ (phase 9) is not part of the package

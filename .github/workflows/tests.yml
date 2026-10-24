@@ -1,0 +1,38 @@
+# Runs the whole test suite on GitHub's machines on every push and pull request.
+# No Ollama is needed: the AI tests use a fake model. Synthetic data only (docs/COMPLIANCE.md C1).
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:        # a "Run workflow" button in the Actions tab
+
+concurrency:                # a newer push cancels the run still going for the same branch
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Python ${{ matrix.python }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false      # one failing combination doesn't stop the others
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.10" }    # the oldest version pyproject.toml allows
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: windows-latest, python: "3.13" }   # where the project is developed
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Run the tests
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python -m pytest -q

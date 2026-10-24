@@ -1,0 +1,10 @@
+# Source and docs: normal text, LF in the repository.
+* text=auto
+
+# Test data must stay byte for byte as generated: CRLF and lone CR line breaks, Windows-1252,
+# BOMs and MLLP framing are part of what the tests check. Git must never convert them.
+examples/** -text
+expected/** -text
+tests/golden/** -text
+*.hl7 -text
+*.xlsx binary

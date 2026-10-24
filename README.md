@@ -133,6 +133,19 @@ only, and the CLI accepts them as `--expected`.
 .venv/Scripts/python scripts/translations.py     # scores + checked output → docs/TRANSLATIONS.md
 ```
 
+### How far to trust a confidence (phase 9)
+
+`evalset/` generates messy files from invented records whose correct output is known: patients in CSV,
+Excel, JSON, XML, HL7 v2 and FHIR, and order lines (no pack) in CSV, Excel, JSON and XML. Each proposal
+is graded by the values it would really write. The score bands are then calibrated on one set of files
+and checked on another, and the review screen shows what each confidence has meant in those tests ("en
+pruebas sintéticas, propuestas así acertaron 96 de cada 100"). Real exports can be harder than the
+generator, and the screen says so.
+
+```bash
+.venv/Scripts/python scripts/calibrate.py        # 1200 files → docs/CALIBRATION.md + multibridge/calibration.json
+```
+
 ### Map a hospital file onto the destination (command line)
 
 ```bash
@@ -195,6 +208,7 @@ DiabA
 | `scripts/eval_proposer.py` | rules vs local models against the reviewed plans → [docs/EVAL.md](docs/EVAL.md) |
 | `examples/hard/` + `scripts/hard_data.py` | five hard files rendered from the same invented patients, with known answers → [docs/HARD_DATA.md](docs/HARD_DATA.md) |
 | `examples/pedidos/` + `scripts/translations.py` | the non-clinical order lines (known answer) and the measurement of both first translations → [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) |
+| `evalset/` + `scripts/calibrate.py` | phase 9: generated messy files with known answers, grading by output values, calibrated confidence bands (`multibridge/calibration.json`) → [docs/CALIBRATION.md](docs/CALIBRATION.md) |
 | `docs/` | [ROADMAP](docs/ROADMAP.md) (start here), [COMPLIANCE](docs/COMPLIANCE.md), [JEV](docs/JEV.md) |
 
 ## Plugging in a format, a domain, or JEV
@@ -249,4 +263,4 @@ See [docs/ROADMAP.md](docs/ROADMAP.md): current state, decisions, and the phases
 7. first translation: messy Excel → FHIR
 8. second translation: CSV → nested XML or JSON
 9. evaluation and calibration
-10. deployment
+10. deployment as a portfolio project: CI (done), a GitHub Pages demo running the Python in the browser
