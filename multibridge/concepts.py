@@ -80,8 +80,17 @@ def evidence(f: Field, values, pack) -> Evidence:
     tail = desc.rsplit(":", 1)[-1] if ":" in desc else desc
     primary = words(f.label, f.path, tail)
     secondary = words(desc)
+    # "Dirección / CP", "direccion.Postcode": the section says where the field sits, its own name what it is.
+    # A synonym only in the section is context, not the field's meaning.
+    own = re.split(r"\s+/\s+", f.label)[-1]
+    if own == f.label and f.label == f.path and "." in f.path:
+        own = f.path.rsplit(".", 1)[-1]
+    own_words = words(own, tail)
     for key, c in pack.concepts.items():
         hit = next((h for h in c.hints if f" {h} " in primary), None)
+        if hit and own != f.label and not any(f" {h} " in own_words for h in c.hints):
+            add(key, 0.5, f"la sección contiene «{hit}»", "context")
+            continue
         if hit:
             add(key, 1.0, f"el nombre contiene «{hit}»", "name")
             continue

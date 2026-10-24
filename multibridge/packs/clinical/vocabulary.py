@@ -14,17 +14,18 @@ from ...concepts import Concept
 
 CONCEPTS: dict[str, Concept] = {
     "id_paciente": Concept(["nhc", "n historia", "historia", "num historia", "historia clinica", "mrn", "patient id",
-                            "identificador del paciente", "id paciente", "identifier value"],
+                            "identificador del paciente", "id paciente", "identifier value", "medical record number"],
                            ["PID-3.1", "PID-3", "PID-2", "Patient.identifier.value"]),
     "id_tecnico": Concept(["identificador logico", "logical id", "id de secuencia", "id de control"],
                           ["Patient.id"]),
-    "dni": Concept(["dni", "nif", "nie", "documento de identidad"], ["PID-19"]),
-    "nombre": Concept(["nombre", "nombre de pila", "given", "first name", "given name", "nom"],
+    "dni": Concept(["dni", "nif", "nie", "documento de identidad", "national id", "id document"], ["PID-19"]),
+    "nombre": Concept(["nombre", "nombre de pila", "given", "first name", "given name", "nom",
+                       "full name", "nomape"],     # full-name columns: the matcher asks for a split
                       ["PID-5.2", "Patient.name.given"]),
     "apellidos": Concept(["apellido", "apellidos", "family", "surname", "last name", "ape", "ape1", "ape2",
                            "apellido1", "apellido2", "primer apellido", "segundo apellido",
                            # full-name columns hold the surnames too: the matcher then asks for a split
-                           "nombre completo", "full name"], ["PID-5.1", "Patient.name.family"]),
+                           "nombre completo", "full name", "nomape"], ["PID-5.1", "Patient.name.family"]),
     "fecha_nacimiento": Concept(["nacimiento", "birth", "birthdate", "dob", "f nac", "fecha nac", "fnac",
                                   "date of birth"], ["PID-7", "Patient.birthDate"]),
     "sexo": Concept(["sexo", "gender", "sex", "genero"], ["PID-8", "Patient.gender"]),
@@ -35,7 +36,7 @@ CONCEPTS: dict[str, Concept] = {
     "ciudad": Concept(["ciudad", "city", "localidad", "municipio", "poblacion", "loc", "town"],
                       ["PID-11.3", "Patient.address.city"]),
     "provincia": Concept(["provincia", "state"], ["PID-11.4", "Patient.address.state"]),
-    "codigo_postal": Concept(["codigo postal", "cp", "postal", "postal code", "zip"],
+    "codigo_postal": Concept(["codigo postal", "cp", "c p", "postal", "postal code", "zip", "postcode"],
                              ["PID-11.5", "Patient.address.postalCode"]),
     "pais": Concept(["pais", "country"], ["PID-11.6", "Patient.address.country"]),
     "grupo_sanguineo": Concept(["grupo sanguineo", "sangre", "blood", "blood type", "abo", "tipo sangre"]),
@@ -55,7 +56,7 @@ CONCEPTS: dict[str, Concept] = {
 
 ROLES = {
     "practitioner": ["medico", "doctor", "practitioner", "facultativo", "dr", "dra", "gp"],
-    "relative": ["familiar", "parentesco", "next of kin", "contacto de emergencia"],
+    "relative": ["familiar", "fam", "parentesco", "next of kin", "contacto de emergencia"],
 }
 HL7_ROLE_SEGMENTS = {"PV1-7": "practitioner", "PV1-8": "practitioner", "PV1-17": "practitioner", "NK1": "relative"}
 NAME_PARTS = {"nombre", "apellidos"}

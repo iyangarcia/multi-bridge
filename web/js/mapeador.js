@@ -17,6 +17,14 @@ const estado = {
 
 const ALTA = 0.85;
 const nivel = p => p === null || p === undefined ? "bajo" : p >= 0.85 ? "alto" : p >= 0.7 ? "medio" : "bajo";
+// Lo que ha significado esta confianza en el banco de pruebas sintético (fase 9): una tasa medida, no una promesa
+// (nunca «100 de cada 100»: ninguna prueba lo garantiza)
+const deCada100 = r => r >= 0.995 ? "más de 99" : String(Math.round(r * 100));
+const porCiento = r => `${(Math.floor(r * 1000) / 10).toLocaleString("es")} %`;
+const medidoTexto = m => m
+  ? `En pruebas sintéticas, de ${m.n} propuestas con esta confianza acertaron ${deCada100(m.rate)} de cada 100 `
+    + `(intervalo ${porCiento(m.interval[0])}–${porCiento(m.interval[1])}). Los datos reales pueden ser más difíciles.`
+  : "Confianza sin medir: ordena la revisión, no es una probabilidad";
 const objetivo = path => estado.destino.targets.find(t => t.path === path);
 const columna = c => estado.subida.columns.find(x => x.column === c);
 const nombreColumnas = cols => cols.map(c => humanoOrigen(columna(c)).nombre).join(" + ");
@@ -84,7 +92,7 @@ async function proponer() {
     estado.propuesta = p;
     estado.decisiones = {};
     for (const [t, f] of Object.entries(p.draft.fields)) {
-      estado.decisiones[t] = { ...f, preview: p.previews[t] };
+      estado.decisiones[t] = { ...f, preview: p.previews[t], medido: (p.measured || {})[t] || null };
     }
     estado.revisado = new Set();
     // Lo que la persona ató a una columna al hacer la lista ya está decidido; lo dudoso sigue por revisar
@@ -157,7 +165,7 @@ async function elegirColumnas(target, cols) {
   // Una columna alimenta un solo campo: si la tenía otro campo, ese se queda sin dato
   for (const [t, d] of Object.entries(estado.decisiones)) {
     if (t !== target && d.from.some(c => cols.includes(c))) {
-      Object.assign(d, { status: "no_data", from: [], transforms: [], issues: [], preview: null, confidence: null });
+      Object.assign(d, { status: "no_data", from: [], transforms: [], issues: [], preview: null, confidence: null, medido: null });
       estado.revisado.delete(t);
       toast(`«${humanoDestino(objetivo(t)).nombre}» se queda sin dato: su columna pasa a «${humanoDestino(objetivo(target)).nombre}»`);
     }
@@ -167,7 +175,8 @@ async function elegirColumnas(target, cols) {
     const opcion = (estado.propuesta.ranking[target] || []).find(o => o.from.join("|") === cols.join("|"));
     Object.assign(estado.decisiones[target], {
       status: r.status, from: r.from, transforms: r.transforms, issues: r.issues, preview: r.preview,
-      confidence: opcion ? opcion.confidence : null, why: opcion ? opcion.why : ["elegido a mano"]
+      confidence: opcion ? opcion.confidence : null, why: opcion ? opcion.why : ["elegido a mano"],
+      medido: opcion ? opcion.measured || null : null
     });
   } catch (e) { toast(e.message); }
   estado.revisado.delete(target);
@@ -177,7 +186,7 @@ async function elegirColumnas(target, cols) {
 }
 
 function quitar(target) {
-  Object.assign(estado.decisiones[target], { status: "no_data", from: [], transforms: [], issues: [], preview: null, confidence: null });
+  Object.assign(estado.decisiones[target], { status: "no_data", from: [], transforms: [], issues: [], preview: null, confidence: null, medido: null });
   estado.revisado.delete(target);
   estado.recien = target;
   render();
@@ -327,11 +336,13 @@ function renderPendientes(lista) {
       <div class="valores"><code class="antes"></code><span class="mini-flecha">→</span><code class="despues"></code></div>
       <div class="motivo"></div><ul class="avisos"></ul>`;
     conector.querySelector(".porcentaje").textContent = pct(d.confidence);
+    conector.querySelector(".porcentaje").title = medidoTexto(d.medido);
     conector.querySelector(".antes").textContent = formatear(p.before);
     conector.querySelector(".despues").textContent = p.problem ? "✕ " + p.problem : formatear(p.after);
     conector.querySelector(".despues").classList.toggle("cambia", !p.problem && formatear(p.before) !== formatear(p.after));
     conector.querySelector(".despues").classList.toggle("error", !!p.problem);
-    conector.querySelector(".motivo").textContent = (d.why || []).join(" · ") + (d.proposed_by && d.proposed_by !== "rules" ? ` · propuesto por ${d.proposed_by}` : "");
+    conector.querySelector(".motivo").textContent = (d.why || []).join(" · ") + (d.proposed_by && d.proposed_by !== "rules" ? ` · propuesto por ${d.proposed_by}` : "")
+      + (d.medido ? ` · en pruebas sintéticas, propuestas así acertaron ${deCada100(d.medido.rate)} de cada 100` : "");
     conector.querySelector(".avisos").innerHTML = (d.issues || []).map(i => `<li>${esc(i)}</li>`).join("");
 
     const destino = bloqueDestino(objetivo(t));

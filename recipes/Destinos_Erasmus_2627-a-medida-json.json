@@ -1,7 +1,7 @@
 {
   "recipe": "Destinos_Erasmus_2627-a-medida-json",
   "status": "approved",
-  "created": "2026-10-24T00:01:57",
+  "created": "2026-10-24T14:15:51",
   "expected": "a-medida-json#9117e74f",
   "source": {
     "file": "Destinos_Erasmus_2627.xlsx",
@@ -902,7 +902,7 @@
   "unmatched": [],
   "approval": {
     "by": "Iyán García García",
-    "at": "2026-10-24T00:01:57",
+    "at": "2026-10-24T14:15:51",
     "sha256": "e78997e3300c997a046a7e3b18092e6f8d00df32ee2c44e3a83735d8542aff08"
   },
   "proposer": {

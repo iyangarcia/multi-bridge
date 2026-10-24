@@ -26,7 +26,7 @@ Endpoints (JSON):
     GET  /api/recipes                     approved recipes (summary)
     GET  /api/recipes/<name>              one approved recipe (download)
     POST /api/upload   {name, content_b64} | {example}   → upload_id, columns, notes, AI view, samples
-    POST /api/propose  {upload_id, model, destination}   → draft recipe, reusable recipe, ranking, previews
+    POST /api/propose  {upload_id, model, destination}   → draft recipe, reusable recipe, ranking, previews, measured hit rates
     POST /api/field    {upload_id, target, from, destination}  → transforms, issues, status, preview
     POST /api/approve  {upload_id, draft, by, carry, destination} → approved recipe (saved) + output
     POST /api/run      {upload_id, recipe, destination}  → output with an approved recipe
@@ -47,7 +47,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import __version__, matcher, recipe as recipes
+from . import __version__, calibration, matcher, recipe as recipes
 from .ai import ollama
 from .aiview import source_view
 from .engine import TransformError, field_value, run
@@ -423,7 +423,14 @@ class App:
         with self.lock:
             up["draft"] = json.loads(json.dumps(draft))   # the server's own copy: provenance can't be edited
             up["destination"] = expected.id
-        return {"draft": draft, "reusable": reusable, "ranking": matcher.ranking(rows, expected), "previews": previews}
+        # what each confidence has meant on the generated evaluation set (phase 9), per proposer
+        measured = {t.path: calibration.measured(draft["fields"][t.path].get("confidence"),
+                                                 draft["fields"][t.path].get("proposed_by")) for t in expected.targets}
+        ranking = matcher.ranking(rows, expected)
+        for options in ranking.values():
+            for o in options:
+                o["measured"] = calibration.measured(o["confidence"], "rules")
+        return {"draft": draft, "reusable": reusable, "ranking": ranking, "previews": previews, "measured": measured}
 
     def field(self, body: dict) -> dict:
         up = self._upload(body.get("upload_id", ""))

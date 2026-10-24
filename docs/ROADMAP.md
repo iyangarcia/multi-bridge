@@ -192,9 +192,9 @@ trying `map` before phase 1. It is unused; the user can delete it.
 | D10 | **The review UI is the hackathon website, reused, not Streamlit.** Copy it from `TalentUO 2026 Grupo 5/app/` into `web/` (the hackathon folder stays untouched). Remove client branding. Replace its JavaScript parsers and simulated AI with calls to a small local Python API, so there is one implementation of the logic. See phase 3 | started at the user's request 2026-10-22 and implemented (phase 3). Client branding removed; Grupo 5 credited. Grupo 5 is OK with the reuse (user, 2026-10-24) |
 | D11 | **Generic core + domain packs.** The project is a translator from any format to any format (section 2a). The core knows formats and structure only; clinical knowledge moves into the first domain pack | approved by the user 2026-10-22 |
 | D12 | **First translations: messy Excel → FHIR** (clinical pack) **and CSV → nested XML or JSON** (no pack). They differ in domain, direction of cardinality and output shape, so together they prove "any to any" | approved by the user 2026-10-22 |
-| D13 | **Format plug-in = reader + writer + checker**, registered by format; no code per pair of formats. Extends D3: EXPECTED is an example in *any* format, read by its own reader | proposed, follows from D11 |
-| D14 | **No custom field is dropped silently**: each unmatched source field is mapped, carried through (FHIR extension / HL7 Z-segment / extra column) or dropped on purpose, recorded in the recipe (C9) | proposed, follows from D11 |
-| D15 | **Compliance splits in two:** general GDPR rules for every domain (sensitive categories detected everywhere), plus the health rules whenever the clinical pack is used or health data is detected | proposed, follows from D11 |
+| D13 | **Format plug-in = reader + writer + checker**, registered by format; no code per pair of formats. Extends D3: EXPECTED is an example in *any* format, read by its own reader | approved by the user 2026-10-24 |
+| D14 | **No custom field is dropped silently**: each unmatched source field is mapped, carried through (FHIR extension / HL7 Z-segment / extra column) or dropped on purpose, recorded in the recipe (C9) | approved by the user 2026-10-24 |
+| D15 | **Compliance splits in two:** general GDPR rules for every domain (sensitive categories detected everywhere), plus the health rules whenever the clinical pack is used or health data is detected | approved by the user 2026-10-24 |
 
 ## 6. Phases
 
@@ -247,10 +247,10 @@ trying `map` before phase 1. It is unused; the user can delete it.
       - **Pattern: when a field has a source, the 8b finds it; when it has none, it invents one with
         confidence 1.0.** Its self-reported confidence is not informative.
       - Each of these mistakes now has a check (above) and a replay test.
-- [ ] **Re-run `scripts/eval_proposer.py rules qwen3:8b qwen3:30b` with the checks in place.** The
-      second run stopped after the rules rows because Ollama went offline (connection refused; an
-      Ollama update was pending). Needs Ollama running: running `ollama ps` starts it. Ask the user
-      before starting it. The script now saves after every file and records model errors as rows.
+- [x] **Re-run `scripts/eval_proposer.py rules qwen3:8b` with the checks in place** (2026-10-24):
+      qwen3:8b 15/15 on all three hospitals, 0 wrong. qwen3:30b not re-run: the user said there is
+      no need yet (2026-10-24); its old rows stay in `EVAL.md`, marked "not re-run". Ask the user
+      before starting Ollama.
 - [ ] Record the model digest (exact version) in recipes (C9, C15).
 - **Done when:** the re-run shows no *wrong* fields for qwen3:8b on the 3 reviewed hospitals
   (pending is acceptable), and `EVAL.md` documents every difference.
@@ -286,7 +286,8 @@ trying `map` before phase 1. It is unused; the user can delete it.
 - [x] Browser check: HUCA proposed → 11 bulk-accepted + 4 reviewed → approved → 8/8 converted;
       reload offers reuse; hard FHIR file shows the phone tie as pending; phone width fixed
       (long names now wrap).
-- [ ] The 11 example buttons are a long list: group them (reto / difíciles) or use a select.
+- [x] The 11 example buttons are a long list: group them (reto / difíciles) or use a select. Done in
+      phase 6c (one grouped dropdown).
 - [ ] No way yet to edit transforms (e.g. a translation table) in the UI, only the column.
 - [ ] CLI `approve` still computes the reuse signature from the *proposed* columns, not the final
       ones (the API rebuilds it). Fix by passing the source file to `approve`, or reject edits
@@ -330,8 +331,9 @@ files with known answers (`answers.json`); `scripts/hard_data.py` writes
         penalises empty columns (−0.2 × null ratio).
       - Result: H3's NHC and DNI and H4's weight and height are now mapped exactly. Identifiers *without*
         a type code (`NHC~ASTU` with no PID-3.5) stay pending.
-- [ ] Split column: "Nombre completo" / "Nombre y apellidos" → given + family, with human review
-      (Spanish names are hard: compound given names, two surnames, particles).
+- [x] Split column: "Nombre completo" / "Nombre y apellidos" → given + family, with human review
+      (Spanish names are hard: compound given names, two surnames, particles). Done in phase 7
+      (`name_part`).
 - [ ] Terminology transform: diagnosis text → ICD-10 via `terms/`, keeping the original text next
       to the code; every change approved (C10).
 - [ ] Re-run the hard files with qwen3:8b (`proposer.propose`) once Ollama is back, to compare with
@@ -549,7 +551,8 @@ domain (`tests/test_generic.py` still greps it). Measured by `scripts/translatio
 - [x] Reviewed end to end in the web app (6/6, one extra, one drop; "Diagnósticos" label added).
 - [ ] Not done: diagnosis text → ICD-10 coding. Diagnoses go as `code.text` only, so nothing clinical
       is changed (C10); a coding transform must keep the text next to the code and be approved.
-      FHIR `given` gets "Lucía María" as one element, not two.
+- [x] FHIR `given` gets "Lucía María" as one element, not two. **Decided by the user (2026-10-24):
+      it stays one element.** Don't split given names.
 - [x] qwen3:8b measured 2026-10-24 (`scripts/translations.py rules qwen3:8b`). First run: hospital C
       9/12 with **1 wrong** (`Condition.code.text` from "Diagnóstico principal" only), h5 10/12; the name
       split always pending. Then, at the user's request, **the AI path uses the same structure as the
@@ -581,10 +584,10 @@ domain (`tests/test_generic.py` still greps it). Measured by `scripts/translatio
       wrong** for both (~22 s); reviewed output equal
       to the known answer; the XML reads back. Reviewed end to end in the web app ("Líneas de pedido"
       in the examples dropdown).
-- [x] `tests/test_translations.py` (15 tests). **261 tests pass.**
+- [x] `tests/test_translations.py` (16 tests, including the CLI default destination). **263 tests pass.**
 - **Done when:** met — both translations run through the same pipeline and review screen, pass their
   checkers, match the known output, and no source column disappears without a recorded decision.
-  Left: ICD-10 coding (C10), nested groups deeper than one level, qwen3:30b re-run.
+  Left: ICD-10 coding (C10), nested groups deeper than one level. (qwen3:30b re-run: not needed yet.)
 
 ### Later (unordered)
 - HL7 v2 writer + checker (the hardest standard to write correctly).
@@ -593,31 +596,100 @@ domain (`tests/test_generic.py` still greps it). Measured by `scripts/translatio
 - Unstructured sources (PDF, scans, free text) via AI extraction, always reviewed.
 - More domain packs (invoices, logistics, HR...), only when a use case asks for one.
 
-### Phase 9: evaluation set and calibration
-- [ ] A generator: synthetic records → messy files in every supported format with known correct
-      mappings (clinical and at least one non-clinical domain).
-- [ ] Calibrate confidences per score band, so that "0.9" means right about 9 in 10. Only then
-      may the UI call it a probability.
+### Phase 9: evaluation set and calibration — done 2026-10-24
+Results in [CALIBRATION.md](CALIBRATION.md); `scripts/calibrate.py` rebuilds it.
+- [x] A generator, `evalset/` (outside the package; seeded, deterministic): invented records → messy files
+      with the correct output known per row.
+      - **patients** → `cdss_paciente` (clinical pack) as CSV, Excel, JSON, XML, HL7 v2, FHIR
+      - **order lines** → `pedido_json` (no pack) as CSV, Excel, JSON, XML
+      - mess: header languages / cryptic codes, section prefixes, title lines, encodings, separators, date
+        shapes, sex codes, units, decimal commas, capitals, split or combined names, lost leading zeros,
+        missing fields, distractor columns
+- [x] Grading by **output values**, not column names (`evalset/grade.py`): right / pending / missed /
+      wrong, wrong split into *silent* (passes every destination rule) and *caught* (the engine sets the
+      rows aside), plus an oracle (true columns + the rules' transforms).
+- [x] **Fixed on the way** (found by the set, seeds 0–299; the measurement uses other seeds):
+      - phones written `0034…` or `+34 600 11 22 33` got no conversion
+      - `19850412` dates outside HL7 weren't read as dates (now `%Y%m%d` + a review note)
+      - a section prefix decided the meaning ("Dirección / CP" → street): a synonym only in the section
+        is now context, and a field only the section names is pending
+      - English "Full name" wasn't split; "National ID", "Medical record number", "Postcode", "C.P.",
+        a `FAM` (relative) phone
+      - with no pack, a column naming another object of the destination ("Fecha entrega" for the order's
+        `fecha` when there is an `entrega` object) is a guess, pending
+      - first measurement 105 wrong in 300 files; after the fixes 3 silent in 1200
+- [x] Calibrated per score band (fit on seeds 1000+, checked on held-out seeds 2000+, 600 files each):
+      rules **0.60–0.70 → 96%, 0.70–0.80 → 96%, 0.80–1.00 → 99.9%** right when accepted; held-out ECE
+      **0.2%** (12% reading the raw score as a probability: the rules are *under*-confident). Saved in
+      `multibridge/calibration.json`; `multibridge/calibration.py` looks it up.
+- [x] The web app shows it: next to each confidence, "en pruebas sintéticas, propuestas así acertaron N de
+      cada 100" (never "100 de 100"), with the count and interval on hover. The raw score still orders the
+      review; the recipe's `confidence_kind` is unchanged. API: `measured` per field and per ranking option.
+- [x] `tests/test_evalset.py` (34 tests): deterministic files, truth columns exist, oracle ≥ 97%, grading
+      semantics, Wilson interval, monotone fit, the shipped table is monotone, each matcher fix, and **no
+      silent mistakes on 60 fresh files**. API test for `measured`. 298 tests pass.
+- **Measured weaknesses** (now known, not fixed): with no pack, the rules leave ~31% of order fields as
+  "no data" when headers are English or cryptic (safe, but incomplete: an orders pack or the AI would
+  cover it). The 3 silent mistakes are value-only guesses at 0.67–0.73 (a 5-digit code read as a postal
+  code); making those pending would also send HUCA's right Z-segment weight/height to review, so it was
+  left to the calibrated rate (96% in that band).
+- Left: measure qwen3:8b on the set (`scripts/calibrate.py rules qwen3:8b --cases 60`, needs Ollama, ~1 min
+  per file); more mess kinds as real exports show them.
 
-### Phase 10: deployment and compliance
-- [ ] Harden the phase 3 API for an organisation: Docker image (on-prem or private cloud), corporate
-      login, roles (propose vs approve), encryption at rest, audit log (C14).
-- [ ] Compliance paperwork the hospital will ask for: C16–C19.
-- [ ] Jev backend (D9) only after TypeSafe answers the questions in `JEV.md` and a hospital authorises it.
+### Phase 10: deployment as a portfolio project (decided 2026-10-24)
+The user: this is a **portfolio project, not for a hospital**, and nothing paid. So:
+- [x] **CI** (GitHub Actions, `.github/workflows/tests.yml`): the whole suite on every push and pull
+      request, on Ubuntu with Python 3.10 (the oldest `pyproject.toml` allows) and 3.13, and on Windows 3.13.
+      No Ollama needed (fake model). Rehearsed locally: a clean copy without ignored files, fresh venv,
+      `pip install -e ".[dev]"`, 298 passed. `.gitattributes` keeps test data byte-exact (git must not
+      turn the CRLF / lone CR line breaks of the examples into LF). The README badge needs the GitHub
+      user name (not added yet).
+- [ ] **Live demo on GitHub Pages, no server:** the same `web/` with the Python running in the visitor's
+      browser (Pyodide; the core is standard library + openpyxl). `api()` in `web/js` calls the API's
+      functions in Pyodide instead of over HTTP; recipes and saved formats live in the browser; the
+      synthetic examples are bundled. Rules only. Visitors' files never leave their computer.
+- [ ] A second workflow that builds and publishes the Pages demo on every push to `main`.
+- [ ] **AI:** the main way stays "clone + `multibridge serve` + Ollama". On Pages, an *experimental*
+      "connect your own Ollama" (`OLLAMA_ORIGINS=https://<user>.github.io ollama serve`; the browser
+      may ask for local-network permission); `ai/ollama.py` needs a `fetch` path under Pyodide.
+- [ ] README as a landing page: demo link, local install for the AI, the measured numbers, a GIF.
+- Not for now (a real organisation would need them): corporate login, propose/approve roles, encryption at
+  rest, audit log (C14), compliance paperwork (C16–C19), Jev (D9).
 
 ## 7. Open questions for the user
 
-- The repo is called `multibridge-mapper`; does the name stay now that it's a translator? (User's
-  call; GitHub is theirs.) The user's answer (2026-10-24): "i dont know you might meed to ask me" —
-  still open: ask again, with a few name ideas.
+- *Answered 2026-10-24:* the repo name stays `multibridge-mapper` (the user: "multibridge-mapper is
+  the correct name"). Don't ask again.
+- *Answered 2026-10-24:* FHIR `given` keeps a compound given name as one element. No qwen3:30b
+  re-run for now.
 - *Answered 2026-10-24:* Grupo 5 is OK with its UI living in this repo (D10). Phase 8's destination:
   any format (done as both JSON and XML, orders as the domain).
-- FHIR extensions need a base URL for custom fields. Which one? 
-- D13–D15 follow from the approved direction; confirm them. (D15 is already applied to
-  COMPLIANCE.md in phase 5.)
+- FHIR extensions need a base URL for custom fields (the user asked what it is, 2026-10-24: a web address
+  that names each extra field, e.g. `https://<organisation>/fhir/StructureDefinition/nivel-triaje`; it
+  only has to be unique and stable, it needn't serve a page). Until an organisation is chosen the example
+  one stays. Ask again at deployment (phase 10).
+- *Answered 2026-10-24:* D13–D15 approved ("yes keep them"). C1 is in `CLAUDE.md` (the user added it).
+  ICD-10 coding: the user doesn't know yet; diagnoses stay text only (safe default, C10).
 - Add the C1 rule ("never put real patient data in this repo") to `CLAUDE.md`. That's the user's file.
 
 ## 8. Session log (newest first, append only)
+
+- **2026-10-24 (phase 10 starts):** the user: a portfolio project, free hosting, GitHub Pages without AI,
+  AI by cloning or by the visitor's own Ollama. Phase 10 rewritten accordingly. CI added
+  (`.github/workflows/tests.yml`, 3 combinations) and `.gitattributes` for byte-exact test data; rehearsed
+  on a clean copy: 298 passed. Nothing committed (the user's call).
+
+- **2026-10-24 (phase 9):** D13–D15 approved. Phase 9 done: `evalset/` generator (patients in 6 formats,
+  orders in 4), grading by output values, `scripts/calibrate.py` → `docs/CALIBRATION.md` +
+  `multibridge/calibration.json`, measured rate shown in the web app. The set found six matcher problems
+  (phones, compact dates, section prefixes, English full names, a few synonyms, other-object names);
+  wrong fields went from 105 in 300 files to 3 silent in 1200. Rules calibration: 96% / 96% / 99.9% per
+  band, held-out ECE 0.2%. 298 tests pass. qwen3:8b not measured on the set (Ollama not asked).
+
+- **2026-10-24 (latest):** Roadmap review with the user. Ticked what was already done (phase 2 eval
+  re-run with qwen3:8b, phase 3 grouped examples, phase 4 name split) and fixed the test count (263).
+  User answers: the name stays `multibridge-mapper`; FHIR `given` stays one element; no qwen3:30b
+  re-run yet. Still open: FHIR extension base URL, D13–D15, C1 in `CLAUDE.md` (the user doesn't know yet).
 
 - **2026-10-24 (later):** Phases 7 and 8 together at the user's request. Excel → FHIR Bundle (name
   split, one Condition / AllergyIntolerance per value, triage carried as an extension) with golden
@@ -626,8 +698,10 @@ domain (`tests/test_generic.py` still greps it). Measured by `scripts/translatio
   the user's request, qwen3:8b measured (after a laptop shutdown, rerun): orders 11/11 with 0 wrong;
   Excel → FHIR 9–10/12 with 1 wrong (one diagnosis column of two) and the name split pending.
   Fixed by letting the AI path reuse the rules' structure (name split, list columns) plus a prompt
-  line: Excel → FHIR now 10–11/12 with 0 wrong; 3-hospital eval 45/45. 262 tests pass. Next: the user's pick — qwen measurement, ICD-10 coding (C10),
-  HL7 v2 writer.
+  line: Excel → FHIR now 10–11/12 with 0 wrong; 3-hospital eval 45/45. Also fixed a phase 7
+  regression found while listing the commands: with two examples in `expected/` the CLI had no
+  default destination (a traceback); it now takes the first by name, like the web app. 263 tests
+  pass. Next: the user's pick — ICD-10 coding (C10), HL7 v2 writer, qwen3:30b re-run.
 
 - **2026-10-24:** Phase 6c at the user's request: "Formatos de destino" page where formats are
   created, edited, renamed and deleted (saved as `expected/<name>.fields.json`); examples in one

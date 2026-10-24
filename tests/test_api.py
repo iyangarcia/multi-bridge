@@ -134,3 +134,15 @@ def test_unknown_upload_and_model(server):
     assert call(server, "POST", "/api/propose", {"upload_id": "nope", "model": "rules"})[0] == 404
     _, up = call(server, "POST", "/api/upload", {"example": "hospital_alvarez_buylla.csv"})
     assert call(server, "POST", "/api/propose", {"upload_id": up["upload_id"], "model": "gpt-cloud"})[0] == 400
+
+
+def test_proposal_says_what_each_confidence_meant_in_tests(server):
+    """Phase 9: next to each confidence, the hit rate measured on the generated evaluation set."""
+    from multibridge import calibration
+    status, up = call(server, "POST", "/api/upload", {"example": "huca_oviedo_hl7v23.hl7"})
+    status, prop = call(server, "POST", "/api/propose", {"upload_id": up["upload_id"], "model": "rules"})
+    assert status == 200
+    for t, f in prop["draft"]["fields"].items():
+        assert prop["measured"][t] == calibration.measured(f["confidence"], "rules")
+    assert any(m and 0 < m["rate"] <= 1 and m["n"] > 0 for m in prop["measured"].values())
+    assert all("measured" in o for options in prop["ranking"].values() for o in options)
