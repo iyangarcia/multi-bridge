@@ -155,6 +155,8 @@ def _fields_from_answer(answer: dict, rows: Rows, expected: Expected, model: str
             by_target.setdefault(item["target"], item)
 
     used = dict(taken or {})
+    by_path = {t.path: t for t in expected.targets}
+    ev_of = lambda c: evidence(rows.columns[c], rows.values(c), pack)   # noqa: E731
     fields: dict[str, dict] = {}
     order = sorted(wanted, key=lambda t: -float(by_target.get(t.path, {}).get("confidence") or 0))
     for t in order:
@@ -173,7 +175,25 @@ def _fields_from_answer(answer: dict, rows: Rows, expected: Expected, model: str
         if len(set(cols)) < len(cols):
             issues.append("el modelo repitió la misma columna")
             status, cols = "pending", []
-        clash = [c for c in cols if c in used]
+        # Structure is the code's decision, as in the rules: a full-name column feeds each of its parts,
+        # and a list takes every column the rules found for it (a main one + "others").
+        rule = rules["fields"].get(t.path, {}) if rules else {}
+        ruled = (rule.get("from") or []) if rule.get("status") in ("mapped", "pending") else []
+        part = pack.part_of(t, ev_of(ruled[0])) if len(ruled) == 1 else None
+        split = ruled[0] if part else None
+        if split and cols != [split]:
+            if not cols:
+                issues.append(f"el modelo no usó {split}; tiene nombre y apellidos juntos: se separa como en las reglas")
+                status = "mapped"
+            else:   # the model disagrees with the split: offer it, a human decides
+                issues.append(f"el modelo propuso {' + '.join(cols)}; las reglas separan {split}: revisar")
+                status = "pending"
+            cols = [split]
+        if t.multiple == "list" and cols and set(cols) < set(ruled) and not set(ruled) & set(used):
+            issues.append(f"la lista toma también {', '.join(c for c in ruled if c not in cols)}, como en las reglas")
+            cols = list(ruled)
+        clash = [c for c in cols if c in used and not (c == split and part != pack.part_of(by_path[used[c]], ev_of(c))
+                                                        and pack.part_of(by_path[used[c]], ev_of(c)))]
         if clash:
             issues.append(f"columna ya usada por {used[clash[0]]}: {', '.join(clash)}")
             status, cols = "pending", []

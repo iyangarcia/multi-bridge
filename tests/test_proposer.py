@@ -202,13 +202,19 @@ def test_qwen30b_missed_phone_becomes_pending_with_the_rules_suggestion():
     assert f["status"] == "pending" and any("Teléfono móvil" in i for i in f["issues"])
 
 
-def test_full_name_column_is_not_accepted_as_first_name():
-    """Both models mapped the messy Excel's 'Nombre y apellidos' into paciente.nombre."""
+def test_full_name_column_is_split_for_both_parts_like_the_rules():
+    """Both models mapped the messy Excel's 'Nombre y apellidos' into paciente.nombre only. Since phase 7
+    the code splits it: the given name and the surnames both come from it, through name_part."""
     rows = to_rows(load(ROOT / "examples" / "hospital_c_messy.xlsx"))
-    bad = {"fields": [{"target": "paciente.nombre", "status": "mapped", "from": ["Paciente / Nombre y apellidos"],
-                       "confidence": 1.0, "why": "nombre"}]}
-    f = propose_ai(rows, EXPECTED, chat=FakeModel(bad), second_pass=False)["fields"]["paciente.nombre"]
-    assert f["status"] == "pending" and any("juntos" in i for i in f["issues"])
+    answer = {"fields": [{"target": "paciente.nombre", "status": "mapped", "from": ["Paciente / Nombre y apellidos"],
+                          "confidence": 1.0, "why": "nombre"},
+                         {"target": "paciente.apellidos", "status": "no_data", "from": [], "confidence": 0.5}]}
+    fields = propose_ai(rows, EXPECTED, chat=FakeModel(answer), second_pass=False)["fields"]
+    for target, part in (("paciente.nombre", "given"), ("paciente.apellidos", "family")):
+        f = fields[target]
+        assert f["status"] == "mapped" and f["from"] == ["Paciente / Nombre y apellidos"]
+        assert {"op": "name_part", "part": part, "surnames": 2} in f["transforms"]
+    assert any("se separa" in i for i in fields["paciente.apellidos"]["issues"])
 
 
 def test_rules_never_take_a_diagnosis_column_as_the_doctor():
@@ -257,3 +263,14 @@ def test_destination_example_values_are_masked_too():
 def test_mask_keeps_shape_not_content():
     assert mask("FERNANDEZ-ALVAREZ, Lucía") == "XXXXXXXXX-XXXXXXX, Xxxxx"
     assert mask("HC-7781") == "XX-9999"
+
+
+def test_a_list_takes_every_column_the_rules_found():
+    """qwen3:8b gave the FHIR Condition list only 'Diagnóstico principal'; 'Otros diagnósticos' belongs too."""
+    bundle = Expected.load(ROOT / "expected" / "paciente_resumen_fhir.example.json")
+    rows = to_rows(load(ROOT / "examples" / "hospital_c_messy.xlsx"))
+    answer = {"fields": [{"target": "Condition.code.text", "status": "mapped",
+                          "from": ["Clínica / Diagnóstico principal"], "confidence": 0.9}]}
+    f = propose_ai(rows, bundle, chat=FakeModel(answer), second_pass=False)["fields"]["Condition.code.text"]
+    assert f["status"] == "mapped" and f["from"] == ["Clínica / Diagnóstico principal", "Clínica / Otros diagnósticos"]
+    assert {"op": "split_values", "sep": ";"} in f["transforms"] and any("como en las reglas" in i for i in f["issues"])

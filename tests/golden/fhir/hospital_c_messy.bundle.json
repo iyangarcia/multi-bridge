@@ -1,0 +1,840 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "C-0101"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Iglesias Prado",
+            "given": [
+              "Marta"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1961-03-04",
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-campo-libre-1",
+            "valueString": "3"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:76736fca-935b-5d16-91df-dbd216e6c06a",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        },
+        "valueQuantity": {
+          "value": 71.5,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7d441fbd-f9d1-5537-b876-2207a9d12d19",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        },
+        "valueQuantity": {
+          "value": 160,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:37193649-94c1-50b3-ac2b-c04ed899bcda",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "DM2 mal controlada"
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:10032f88-6ee6-5ddf-a54e-77c29337c548",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "HTA"
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cf8b2dd6-4cf2-5696-9322-bedf81e3d4ca",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "DLP"
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "C-0102"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Ordóñez Vega",
+            "given": [
+              "Luis"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1948-11-20",
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-campo-libre-1",
+            "valueString": "2"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:74f66279-a7df-57bb-bac7-f101a79779db",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117"
+        },
+        "valueQuantity": {
+          "value": 84,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:09fd6154-30d2-5096-8295-c8b3f949d74a",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117"
+        },
+        "valueQuantity": {
+          "value": 172,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7dc2ccdf-417d-516b-8e13-8b3f199141b7",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "Reagudización de EPOC"
+        },
+        "subject": {
+          "reference": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:8ee55e11-baff-53ac-a4e4-731adfca6416",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "AP de IAM"
+        },
+        "subject": {
+          "reference": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "C-0103"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Fanjul Díaz",
+            "given": [
+              "Rosa"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1979-06-01",
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-campo-libre-1",
+            "valueString": "3"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a43f649a-d71a-5777-8a3d-66f31533510e",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33"
+        },
+        "valueQuantity": {
+          "value": 58.2,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cb558e75-5252-5398-a509-d363eb1b5902",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33"
+        },
+        "valueQuantity": {
+          "value": 165,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:57fe54d9-f8d4-5947-813b-9a34eed06434",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "Sospecha de NAC"
+        },
+        "subject": {
+          "reference": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ef90f12c-2a12-55c1-b4aa-a8a68f046ca9",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "C-0104"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Castañón Suárez",
+            "given": [
+              "Iván"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1990-01-15",
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-campo-libre-1",
+            "valueString": "2"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ab9b6a4a-ece0-5832-bc5a-3bea2ddfd577",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:ef90f12c-2a12-55c1-b4aa-a8a68f046ca9"
+        },
+        "valueQuantity": {
+          "value": 77,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a414c7b2-235a-5677-af49-4462e986168b",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:ef90f12c-2a12-55c1-b4aa-a8a68f046ca9"
+        },
+        "valueQuantity": {
+          "value": 180,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:27ab3750-2704-5773-870b-d7b97fa43ca9",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "IRA"
+        },
+        "subject": {
+          "reference": "urn:uuid:ef90f12c-2a12-55c1-b4aa-a8a68f046ca9"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:682fcac6-1de7-51d6-816a-ec72e5f131a7",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "DiabA"
+        },
+        "subject": {
+          "reference": "urn:uuid:ef90f12c-2a12-55c1-b4aa-a8a68f046ca9"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:99805041-3dea-5ed1-bd29-703870b5183a",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "C-0105"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Rubio Llano",
+            "given": [
+              "Carmen"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1955-08-30",
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-campo-libre-1",
+            "valueString": "1"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:83522552-2e18-56d4-a081-5e3ce3582a90",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:99805041-3dea-5ed1-bd29-703870b5183a"
+        },
+        "valueQuantity": {
+          "value": 66.4,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ad440c30-15df-5952-9b47-6c139f5f5e95",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:99805041-3dea-5ed1-bd29-703870b5183a"
+        },
+        "valueQuantity": {
+          "value": 158,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:66ba452f-c733-5e4b-a542-a2809b410c92",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "J18.9"
+        },
+        "subject": {
+          "reference": "urn:uuid:99805041-3dea-5ed1-bd29-703870b5183a"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:78627486-54a9-5408-8eed-b47ce14d3145",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "insuficiencia cardiaca congestiva"
+        },
+        "subject": {
+          "reference": "urn:uuid:99805041-3dea-5ed1-bd29-703870b5183a"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b90e4010-3333-5f02-9061-4562c9e30df8",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "C-0106"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Valdés Menéndez",
+            "given": [
+              "Tomás"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1972-12-09",
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-campo-libre-1",
+            "valueString": "4"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:fd50c3f4-6d44-5b13-849e-1437adb7b14d",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:b90e4010-3333-5f02-9061-4562c9e30df8"
+        },
+        "valueQuantity": {
+          "value": 92.3,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:297c472c-33df-52ba-a054-0d98377f54de",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:b90e4010-3333-5f02-9061-4562c9e30df8"
+        },
+        "valueQuantity": {
+          "value": 175,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:84af4335-58be-5536-9889-5410ef872c88",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "diabetis tipo 2"
+        },
+        "subject": {
+          "reference": "urn:uuid:b90e4010-3333-5f02-9061-4562c9e30df8"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:52daf6e4-3c8c-53a7-8f05-4ca383bc8b2d",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "obesidad"
+        },
+        "subject": {
+          "reference": "urn:uuid:b90e4010-3333-5f02-9061-4562c9e30df8"
+        }
+      }
+    }
+  ]
+}

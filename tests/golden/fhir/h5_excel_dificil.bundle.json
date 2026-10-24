@@ -1,0 +1,379 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "E-1"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Pérez Gil",
+            "given": [
+              "Ana"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1985-04-12",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "600112233"
+          }
+        ],
+        "address": [
+          {
+            "city": "Alicante",
+            "postalCode": "03001"
+          }
+        ],
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-grupo-sanguineo",
+            "valueString": "A+"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:76736fca-935b-5d16-91df-dbd216e6c06a",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        },
+        "valueQuantity": {
+          "value": 65.5,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7d441fbd-f9d1-5537-b876-2207a9d12d19",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        },
+        "valueQuantity": {
+          "value": 168,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:444f4b85-248d-5533-baca-43ea081b83fd",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "Penicilina"
+        },
+        "patient": {
+          "reference": "urn:uuid:563b9503-2093-5974-b38b-b3a4fb16ecbc"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "E-2"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Muñoz Fernández",
+            "given": [
+              "Javier"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1960-11-05",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "600445566"
+          }
+        ],
+        "address": [
+          {
+            "city": "Gijón",
+            "postalCode": "33212"
+          }
+        ],
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-grupo-sanguineo",
+            "valueString": "0-"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:74f66279-a7df-57bb-bac7-f101a79779db",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117"
+        },
+        "valueQuantity": {
+          "value": 72.5,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:09fd6154-30d2-5096-8295-c8b3f949d74a",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:f8982a78-985a-5fd1-992b-0ec42acca117"
+        },
+        "valueQuantity": {
+          "value": 172,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "urn:centro:nhc",
+            "value": "E-3"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Álvarez Castro",
+            "given": [
+              "Lucía María"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "2001-09-07",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "600778899"
+          }
+        ],
+        "address": [
+          {
+            "city": "Avilés",
+            "postalCode": "33402"
+          }
+        ],
+        "extension": [
+          {
+            "url": "https://multibridge.example/fhir/extension/clinica-grupo-sanguineo",
+            "valueString": "AB+"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a43f649a-d71a-5777-8a3d-66f31533510e",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33"
+        },
+        "valueQuantity": {
+          "value": 54,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cb558e75-5252-5398-a509-d363eb1b5902",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33"
+        },
+        "valueQuantity": {
+          "value": 160,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1cea3b1a-e0a6-5ff8-8c1c-6875f132d6de",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "text": "Marisco"
+        },
+        "patient": {
+          "reference": "urn:uuid:b1c6937e-19ca-597b-98b3-591fe6877c33"
+        }
+      }
+    }
+  ]
+}

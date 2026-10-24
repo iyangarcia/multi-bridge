@@ -180,6 +180,10 @@ recognised as ICD-10", from the pack's normalizer), never the raw text, which ca
 - ✅ Ambiguous or unknown terms (`IRA`, `DiabA`) are never auto-resolved (`packs/clinical/terms/`).
 - ❌ When a terminology transform exists, a text → code change must be approved like any other
   mapping, and the output must keep the original text next to the code.
+- ✅ Excel → FHIR (ROADMAP phase 7) writes diagnoses and allergies as `code.text` only, exactly as
+  the source wrote them ("DM2 mal controlada", "IRA"): no code is made up. Splitting a cell of
+  several diagnoses ("HTA; DLP") into one Condition each is a structural step, shown and approved in
+  the recipe (`split_values`).
 - The same rule is good practice for any pack's terminology; for health it is required (MDR risk,
   section 3B).
 

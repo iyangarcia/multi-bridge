@@ -104,6 +104,8 @@ def evidence(f: Field, values, pack) -> Evidence:
     for r, hints in pack.roles.items():
         if any(f" {h} " in everything for h in hints):
             role = r
+    if f.kind == pack.concept_kind:
+        role = pack.subject   # a column of the domain's terms is about the subject, whoever wrote them
     return Evidence(weights, reasons, kinds, role)
 
 

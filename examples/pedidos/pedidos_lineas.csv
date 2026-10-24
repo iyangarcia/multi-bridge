@@ -1,0 +1,12 @@
+Distribuciones del Norte - exportación de pedidos (enero 2026)
+
+Num. pedido;Fecha pedido;Cliente;NIF cliente;E-mail;Ciudad entrega;Ref.;Descripción artículo;Cantidad (uds);Precio unitario €;% Dto.;Comercial;Nota interna
+PED-1001;15/01/2026;Ferretería Norte SL;B00000001;compras@ferreteria-norte.example;Oviedo;T-440;Tornillo 4x40 (caja 100);3;4,95;0;Marta;
+PED-1001;15/01/2026;Ferretería Norte SL;B00000001;compras@ferreteria-norte.example;Oviedo;B-12;Broca HSS 12 mm;10;2,10;5;Marta;cliente preferente
+PED-1002;2026-01-16;Talleres Sela SA;A00000002;pedidos@talleres-sela.example;Gijón;L-01;Llave inglesa 10";2;12,50;0;Iván;
+PED-1003;17-01-2026;Construcciones Prieto SL;B00000003;obra@prieto.example;Avilés;C-25;Cemento cola 25 kg;40;6,80;10;Marta;entregar por la mañana
+PED-1003;17-01-2026;Construcciones Prieto SL;B00000003;obra@prieto.example;Avilés;G-02;Guantes de nitrilo (par);50;0,85;10;Marta;
+PED-1003;17-01-2026;Construcciones Prieto SL;B00000003;obra@prieto.example;Avilés;P-10;Paleta de albañil;4;7,30;10;Marta;
+;18/01/2026;Talleres Sela SA;A00000002;pedidos@talleres-sela.example;Gijón;B-12;Broca HSS 12 mm;5;2,10;0;Iván;sin número: preguntar
+
+Total líneas: 7

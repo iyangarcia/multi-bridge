@@ -48,7 +48,8 @@ CONCEPTS: dict[str, Concept] = {
                       ["PV1-7", "Patient.generalPractitioner.display"], role="practitioner"),
     # Not a destination field, but knowing it stops a room number (PV1-3.2) passing for a height.
     "ubicacion": Concept(["ubicacion", "habitacion", "cama", "location", "room", "bed"], ["PV1-3"]),
-    "diagnostico": Concept(["diagnostico", "diagnosis", "condition"],
+    "diagnostico": Concept(["diagnostico", "diagnosticos", "diagnosis", "diagnoses", "condition", "conditions",
+                            "juicio clinico"],
                            ["DG1-3.1", "DG1-4", "Condition.code.text", "Condition.code.coding.code"]),
 }
 

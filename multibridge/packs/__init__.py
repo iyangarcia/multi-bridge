@@ -88,6 +88,11 @@ class Pack:
         """Values split over several columns that must be joined: (score, columns in output order, reason)."""
         return []
 
+    def part_of(self, t, ev) -> dict | None:
+        """The transform that takes this target's part out of a column holding several parts (a full
+        name -> given name / surnames), else None. Such a column may feed every one of its parts."""
+        return None
+
     def chosen_issues(self, t, cols, evs) -> list[str]:
         """Problems with the chosen columns that need a human (makes the field pending)."""
         return []

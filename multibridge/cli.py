@@ -10,7 +10,8 @@
     multibridge approve recipes/drafts/NAME.json --by "Nombre"
     multibridge map FILE                              # same structure: applied without proposing again
 
-The destination is the only `expected/*.example.json`, or the one given with --expected.
+The destination is the one given with --expected; without it, the only `expected/*.example.*`,
+or `cdss_paciente` when there are several.
 """
 
 from __future__ import annotations
@@ -321,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
     t.set_defaults(func=cmd_terms)
 
     def with_expected(sp):
-        sp.add_argument("--expected", help="example of the destination output (default: the only one in expected/)")
+        sp.add_argument("--expected", help="example of the destination output (default: expected/cdss_paciente.example.json)")
         return sp
 
     e = with_expected(sub.add_parser("expected", help="show the destination fields read from its example"))

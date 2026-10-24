@@ -27,6 +27,8 @@ UNIT_FACTORS = {("g", "kg"): 0.001, ("lb", "kg"): 0.45359237, ("m", "cm"): 100, 
 TYPE_OK = {"date": {"date", "datetime"}, "number": {"integer", "decimal"}, "integer": {"integer"},
            "boolean": {"boolean"}}
 NAME_MATCH = 0.75   # with no concept for the target, a name this similar is evidence on its own
+ENTITY_NAMES = {"nombre", "name", "denominacion", "razon_social"}   # an object's own name ("Cliente" -> cliente.nombre)
+MAYBE = 0.4         # with no vocabulary, a column this close is offered as pending, not left as "no data"
 
 
 def _bigrams(s: str) -> list[str]:
@@ -46,6 +48,46 @@ def dice(a: str, b: str) -> float:
     return 2 * common / (len(A) + len(B))
 
 
+def _subsequence(short: str, long: str) -> bool:
+    it = iter(long)
+    return all(ch in it for ch in short)
+
+
+def _token(a: str, b: str) -> float:
+    """How well a column-name word stands for a target-name word: 1 same or a cut ("num" / "numero"),
+    0.8 an abbreviation ("dto" / "descuento"), else 0."""
+    if a == b or (len(a) >= 3 and b.startswith(a)) or (len(b) >= 3 and a.startswith(b)):
+        return 1.0
+    if len(a) >= 3 and a[0] == b[0] and len(b) > len(a) + 2 and _subsequence(a, b):
+        return 0.8
+    return 0.0
+
+
+def name_match(label: str, t: Target) -> tuple[float, str | None, str | None]:
+    """(score, reason, issue for the reviewer) of a column name against a target with no vocabulary
+    behind it, word by word: the target's own name, and the names it sits under ("NIF cliente" for
+    cliente.nif, "Num. pedido" for pedido.@numero). An abbreviation, or a column named after the
+    object ("Cliente" for cliente.nombre), is a guess: the reviewer decides."""
+    lab = words(label).split()
+    lab += ["".join(lab[i:i + 2]) for i in range(len(lab) - 1)]     # "e mail" -> "email"
+    leaf = words(t.leaf).split()
+    ctx = words(*t.parts[:-1]).split()
+    if not lab or not leaf:
+        return 0.0, None, None
+    best = [max(_token(a, b) for a in lab) for b in leaf]
+    words_of_label = words(label).split()
+    explained = sum(any(_token(a, b) for b in leaf + ctx) for a in words_of_label) / len(words_of_label)
+    if not any(best):
+        if t.leaf.lower() in ENTITY_NAMES and ctx and explained == 1:
+            return 0.7, f"la columna lleva el nombre de «{' '.join(ctx[-1:])}»",                 f"se toma «{label}» como el {t.leaf} de {ctx[-1]}: revisar"
+        return 0.0, None, None
+    coverage = sum(best) / len(best)
+    s = round(0.5 + 0.3 * coverage + 0.1 * explained, 3)
+    abbreviated = [b for b, x in zip(leaf, best) if x == 0.8]
+    issue = f"abreviatura en el nombre de la columna («{label}» → {t.leaf}): revisar" if abbreviated else None
+    return s, "mismo nombre" if s >= 0.9 else "nombre casi igual", issue
+
+
 def score(f: Field, ev: Evidence, t: Target, pack=packs.NONE) -> tuple[float, list[str]]:
     why: list[str] = []
     w = ev.weights.get(t.concept, 0) if t.concept else 0
@@ -54,9 +96,13 @@ def score(f: Field, ev: Evidence, t: Target, pack=packs.NONE) -> tuple[float, li
         why.append(ev.reasons[t.concept])
     else:
         sim = dice(words(f.label).strip(), words(t.leaf).strip())
-        if t.concept is None and sim >= NAME_MATCH:   # no vocabulary knows the target: the name is the evidence
-            s = 0.55 + 0.35 * sim
+        by_words, reason, _ = name_match(f.label, t) if t.concept is None else (0.0, None, None)
+        if t.concept is None and sim >= NAME_MATCH and 0.55 + 0.35 * sim >= by_words:
+            s = 0.55 + 0.35 * sim     # no vocabulary knows the target: the name is the evidence
             why.append("mismo nombre" if sim == 1 else "nombre casi igual")
+        elif by_words >= THRESHOLD:
+            s = by_words
+            why.append(reason)
         else:
             s = 0.45 * sim
             if sim > 0.5:
@@ -93,8 +139,14 @@ def transforms_for(rows: Rows, cols: list[str], t: Target, pack=None) -> tuple[l
     values = [v for c in cols for v in rows.values(c)]
     flat = _flat(values)
 
-    if len(cols) > 1:
+    if len(cols) == 1 and (part := pack.part_of(t, evidence(f, rows.values(cols[0]), pack))):
+        out.append(part)
+        issues.append("se separa el nombre completo: nombre(s) y dos apellidos (revisar nombres compuestos)")
+    if len(cols) > 1 and t.multiple != "list":   # a list target takes the values of every column
         out.append({"op": "join_columns", "sep": " "})
+    if t.multiple == "list" and (sep := _separator(flat)):
+        out.append({"op": "split_values", "sep": sep})
+        issues.append(f"varios valores separados por «{sep}» en una celda: uno por elemento")
     if t.type == "date" and f.format in DATE_FORMATS:
         out.append({"op": "date", "from": DATE_FORMATS[f.format]})
     elif t.type == "date" and f.format == "mixed":
@@ -156,6 +208,14 @@ def transforms_for(rows: Rows, cols: list[str], t: Target, pack=None) -> tuple[l
     return out, issues, pending
 
 
+def _separator(flat: list[str]) -> str | None:
+    """The separator of several values written in one cell ("HTA; DLP"), when some cells have one."""
+    for sep in (";", "|"):
+        if any(sep in v for v in flat):
+            return sep
+    return None
+
+
 def evidences(rows: Rows, pack) -> dict[str, Evidence]:
     return {c: evidence(f, rows.values(c), pack) for c, f in rows.columns.items()}
 
@@ -200,14 +260,23 @@ def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
     evs = evidences(rows, pack)
     pairs = candidates(rows, expected, evs)
 
+    by_path = {t.path: t for t in expected.targets}
     chosen: dict[str, tuple[float, tuple[str, ...], list[str]]] = {}
     used: set[str] = set()
+    parts: set[str] = set()     # columns holding several parts (a full name): each part may take one
     for s, target, cols, why in pairs:
         if s < THRESHOLD:
             break
-        if target not in chosen and not used & set(cols):
+        if target in chosen:
+            continue
+        split = len(cols) == 1 and pack.part_of(by_path[target], evs[cols[0]]) is not None
+        if not used & set(cols) or (split and cols[0] in parts
+                                    and not any(chosen[k][1] == cols and pack.part_of(by_path[k], evs[cols[0]])
+                                                == pack.part_of(by_path[target], evs[cols[0]]) for k in chosen)):
             chosen[target] = (s, cols, why)
             used |= set(cols)
+            if split:
+                parts.add(cols[0])
 
     fields: dict[str, dict] = {}
     for t in expected.targets:
@@ -223,6 +292,9 @@ def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
             if more := pack.chosen_issues(t, list(cols), evs):
                 pending = True
                 issues += more
+            if t.concept is None and len(cols) == 1 and (guess := name_match(rows.columns[cols[0]].label, t)[2])                     and why == [name_match(rows.columns[cols[0]].label, t)[1]]:
+                pending = True
+                issues.append(guess)
             for c in cols:
                 if evs[c].kinds.get(t.concept) == "values":
                     issues.append("deducido solo por los valores: revisar")
@@ -235,6 +307,9 @@ def propose(rows: Rows, expected: Expected, name: str | None = None) -> dict:
             best = sorted((p for p in pairs if p[1] == t.path and p[0] > 0.2), key=lambda p: -p[0])[:3]
             issues = ["obligatorio: hay que asignar un origen o un valor por defecto"] if t.required else []
             hints = pack.no_data_issues(rows, usable, t, evs)   # the data may be there, just not usable as is
+            free = [p for p in best if p[0] >= MAYBE and not used & set(p[2])]
+            if t.concept is None and free:   # no vocabulary: a fair candidate is the reviewer's call, not "no data"
+                hints.append(f"quizá {' + '.join(free[0][2])}: revisar")
             issues += hints
             fields[t.path] = {"status": "pending" if t.required or hints else "no_data", "from": [],
                               "transforms": [], "confidence": None,

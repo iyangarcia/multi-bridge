@@ -21,12 +21,17 @@ Transforms (hackathon list + format conversions):
     translate       {"values": {"H": "male", "M": "female"}}       unknown values pass through, then get validated
     join_columns    {"sep": " "}                                    several `from` columns -> one value
     split           {"sep": " ", "index": 0}                        one part of a value
+    split_values    {"sep": ";"}                                    "HTA; DLP" -> ["HTA", "DLP"] (a target that takes a list)
+    name_part       {"part": "given" | "family", "surnames": 2}     "Lucía María Álvarez Castro" -> "Lucía María" /
+                                                                    "Álvarez Castro" (particles such as "de la" stay
+                                                                    with their surname)
     number          {"decimal": "," | "."}
     scale           {"factor": 0.001}
     phone           {"country": "34"}                               -> "+34600000000"
     pad             {"width": 5}                                    "3001" -> "03001"
     title           "PABLO MARTINEZ" -> "Pablo Martinez"
     first / join_values {"sep": "; "}                               several values in one cell
+A target that takes a list and has several `from` columns gets the values of all of them, in order.
 """
 
 from __future__ import annotations
@@ -89,6 +94,20 @@ def _split(v: str, sep: str, index: int) -> str | None:
     return parts[index] if -len(parts) <= index < len(parts) else None
 
 
+def _name_part(v: str, part: str, surnames: int):
+    """Given name(s) or surnames of a full name written "given... surname surname"."""
+    words = str(v).split()
+    end = len(words)
+    for _ in range(surnames):
+        if end <= 1:
+            break
+        end -= 1
+        while end > 1 and words[end - 1].lower() in CONNECTORS:
+            end -= 1    # "de la Fuente": the particles belong to the surname
+    given, family = " ".join(words[:end]), " ".join(words[end:])
+    return (given if part == "given" else family) or None
+
+
 VALUE_TRANSFORMS = {
     "date": lambda v, t: _date(v, t["from"]),
     "translate": lambda v, t: t["values"].get(v, v),
@@ -98,6 +117,7 @@ VALUE_TRANSFORMS = {
     "phone": lambda v, t: _phone(v, t["country"]),
     "pad": lambda v, t: str(v).zfill(t["width"]),
     "title": lambda v, t: _title(v),
+    "name_part": lambda v, t: _name_part(v, t["part"], t.get("surnames", 2)),
 }
 
 
@@ -124,10 +144,14 @@ def field_value(row: dict, spec: dict, target: Target):
         sep = transforms.pop(0)["sep"]
         parts = [str(vals[0]) for vals in columns if vals]
         values = [sep.join(parts)] if parts else []
+    elif target.multiple == "list":
+        values = [v for vals in columns for v in vals]     # several columns -> one list, in order
     else:
         values = columns[0] if columns else []
     for t in transforms:
-        if t["op"] == "first":
+        if t["op"] == "split_values":
+            values = [p.strip() for v in values for p in str(v).split(t.get("sep", ";")) if p.strip()]
+        elif t["op"] == "first":
             values = values[:1]
         elif t["op"] == "join_values":
             values = [t["sep"].join(str(v) for v in values)] if values else []

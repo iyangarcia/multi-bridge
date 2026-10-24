@@ -1,0 +1,5 @@
+{
+  "$group_by": "numero",
+  "numero": {"required": true},
+  "lineas[].referencia": {"required": true}
+}

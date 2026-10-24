@@ -109,8 +109,13 @@ def test_mixed_date_formats_in_one_column_are_all_converted():
     assert fecha["transforms"] == [{"op": "date", "from": ["%d/%m/%Y", "%Y-%m-%d"]}]
 
 
-def test_full_name_column_waits_for_a_split():
-    assert fields_of("h5_excel_dificil.xlsx")["paciente.nombre"]["status"] == "pending"
+def test_full_name_column_is_split_into_given_name_and_surnames():
+    fields = fields_of("h5_excel_dificil.xlsx")
+    for target, part in (("paciente.nombre", "given"), ("paciente.apellidos", "family")):
+        f = fields[target]
+        assert f["from"] == ["Identificación / Nombre completo"]
+        assert f["transforms"] == [{"op": "name_part", "part": part, "surnames": 2}]
+        assert any("revisar" in i for i in f["issues"])     # a compound name is the reviewer's call
 
 
 def test_fhir_official_name_wins_over_nickname_and_phones_tie():

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pedidos>
+  <pedido numero="PED-0001">
+    <fecha>01/01/2026</fecha>
+    <cliente>
+      <nombre>Empresa Ejemplo SL</nombre>
+      <nif>B00000000</nif>
+      <email>compras@empresa.example</email>
+    </cliente>
+    <entrega>
+      <ciudad>Oviedo</ciudad>
+    </entrega>
+    <lineas>
+      <linea>
+        <referencia>X-1</referencia>
+        <descripcion>Artículo de ejemplo</descripcion>
+        <cantidad>1</cantidad>
+        <precio_unitario>9.95</precio_unitario>
+        <descuento_pct>0</descuento_pct>
+      </linea>
+      <linea>
+        <referencia>X-2</referencia>
+        <descripcion>Otro artículo</descripcion>
+        <cantidad>2</cantidad>
+        <precio_unitario>1.50</precio_unitario>
+        <descuento_pct>5</descuento_pct>
+      </linea>
+    </lineas>
+  </pedido>
+</pedidos>

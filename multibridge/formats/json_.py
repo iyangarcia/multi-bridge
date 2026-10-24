@@ -7,7 +7,8 @@
            structural leaves (resourceType, ids, references, systems, codes that say what an
            Observation measures, statuses) are fixed values. Each output item gets its own copy
            of every resource, with new ids and references rewired; a resource whose targets are
-           all empty is left out.
+           all empty is left out, and a resource whose one-value slot gets a list (a list target:
+           "multiple": "list" in the overlay) is written once per value (one Condition per diagnosis).
 """
 
 from __future__ import annotations
@@ -188,19 +189,28 @@ class Fhir(Json):
                     renamed[f"{e['resource']['resourceType']}/{e['resource']['id']}"] = fresh[i]
             kept = []
             for i, e in enumerate(tpl["entries"]):
-                entry = copy.deepcopy(e)
                 mine = [(p, ptr, wrap) for p, (j, ptr, wrap) in tpl["where"].items() if j == i]
                 values = {p: item.get(p) for p, _, _ in mine}
                 if mine and all(v in (None, []) for v in values.values()):
                     continue      # no data for this resource: leave it out
-                for p, ptr, wrap in mine:
-                    v = values[p]
-                    _put(entry, ptr, None if v in (None, []) else (v if isinstance(v, list) or not wrap else [v]))
-                _prune(entry)
-                entry["resource"].pop("id", None)
-                entry["fullUrl"] = fresh[i]
-                _rewire(entry["resource"], renamed)
-                kept.append(entry)
+                # A list in a one-value slot (Condition.code.text <- ["HTA", "DLP"]): one resource per value
+                fan = [p for p, _, wrap in mine if not wrap and isinstance(values[p], list)]
+                copies = max((len(values[p]) for p in fan), default=1)
+                for k in range(copies):
+                    entry = copy.deepcopy(e)
+                    placed = {}
+                    for p, ptr, wrap in mine:
+                        v = values[p]
+                        if p in fan:
+                            v = v[k] if k < len(v) else None
+                        placed[p] = None if v in (None, []) else (v if isinstance(v, list) or not wrap else [v])
+                        _put(entry, ptr, placed[p])
+                    _drop_empty_elements(entry, [(ptr, placed[p]) for p, ptr, _ in mine])
+                    _prune(entry)
+                    entry["resource"].pop("id", None)
+                    entry["fullUrl"] = fresh[i] if k == 0 else                         f"urn:uuid:{uuid.uuid5(NAMESPACE, f'{expected.id}:{n}:{i}:{k}')}"
+                    _rewire(entry["resource"], renamed)
+                    kept.append(entry)
             extras = item.get(EXTRAS) or {}
             if extras and kept:
                 ext = kept[0]["resource"].setdefault("extension", [])
@@ -275,6 +285,16 @@ def _put(node, pointer: list, value) -> None:
     for p in pointer[:-1]:
         node = node[p]
     node[pointer[-1]] = value
+
+
+def _drop_empty_elements(entry, placed: list[tuple[list, object]]) -> None:
+    """A list element whose data leaves are all empty goes, fixed leaves included (a telecom with its
+    `system` but no number)."""
+    elements = {tuple(ptr[:max(i for i, x in enumerate(ptr) if isinstance(x, int)) + 1])
+                for ptr, _ in placed if any(isinstance(x, int) for x in ptr)}
+    for el in sorted(elements, key=len, reverse=True):
+        if all(v is None for ptr, v in placed if tuple(ptr[:len(el)]) == el):
+            _put(entry, list(el), None)
 
 
 def _prune(node):

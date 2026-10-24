@@ -117,6 +117,22 @@ lists every format and lets you create one from scratch (or from the column name
 edit, rename or delete it; saved lists go to `expected/<name>.fields.json` with names and types
 only, and the CLI accepts them as `--expected`.
 
+### The two first translations (phases 7 and 8)
+
+- **Messy Excel → FHIR Bundle** (`expected/paciente_resumen_fhir.example.json`): each row becomes a
+  Patient, its weight and height Observations (LOINC + UCUM), and one Condition per diagnosis and one
+  AllergyIntolerance per allergy ("HTA; DLP" → two Conditions), all linked by reference. A
+  "Nombre y apellidos" column is split into given name and two surnames. Diagnoses stay as the
+  source wrote them (`code.text`): no code is invented. Try it with `examples/hospital_c_messy.xlsx`.
+- **CSV order lines → nested JSON or XML** with no domain pack (`examples/pedidos/`,
+  `examples/destinos/pedido_*.example.*`): lines are grouped into orders with a customer and their
+  lines. With no vocabulary, columns are matched word by word ("NIF cliente" → `cliente.nif`,
+  "Num. pedido" → número); guesses ("% Dto.", "Cliente") wait for the reviewer.
+
+```bash
+.venv/Scripts/python scripts/translations.py     # scores + checked output → docs/TRANSLATIONS.md
+```
+
 ### Map a hospital file onto the destination (command line)
 
 ```bash
@@ -173,11 +189,12 @@ DiabA
 | `multibridge/recipe.py` | draft → approved recipe, hash, who changed what, reuse by structure |
 | `multibridge/engine.py` | applies a recipe row by row with fixed transforms, validates, groups rows into items, carries extras; `Result.write()` gives the destination file |
 | `multibridge/api.py` + `web/` | local API (loopback only) and the review web app, adapted from the hackathon site (Grupo 5), client branding removed |
-| `expected/` | `cdss_paciente.example.json` (the hackathon's `destino_expected.json`) + `.rules.json` |
+| `expected/` | `cdss_paciente.example.json` (the hackathon's `destino_expected.json`), `paciente_resumen_fhir.example.json` (the phase 7 FHIR Bundle), each with its `.rules.json`; saved field lists (`*.fields.json`) |
 | `examples/` | synthetic data for the 3 hospitals plus messy variants (`build_examples.py` regenerates them) |
-| `tests/` | per area, plus the 3-hospital golden test (`tests/golden/`). The AI tests use a fake model, so no Ollama is needed |
+| `tests/` | per area, plus the 3-hospital golden test and the Excel → FHIR golden Bundles (`tests/golden/`). The AI tests use a fake model, so no Ollama is needed |
 | `scripts/eval_proposer.py` | rules vs local models against the reviewed plans → [docs/EVAL.md](docs/EVAL.md) |
 | `examples/hard/` + `scripts/hard_data.py` | five hard files rendered from the same invented patients, with known answers → [docs/HARD_DATA.md](docs/HARD_DATA.md) |
+| `examples/pedidos/` + `scripts/translations.py` | the non-clinical order lines (known answer) and the measurement of both first translations → [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) |
 | `docs/` | [ROADMAP](docs/ROADMAP.md) (start here), [COMPLIANCE](docs/COMPLIANCE.md), [JEV](docs/JEV.md) |
 
 ## Plugging in a format, a domain, or JEV

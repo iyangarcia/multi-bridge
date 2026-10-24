@@ -1,0 +1,400 @@
+{
+  "pedidos_lineas.csv": {
+    "pedido_json": {
+      "plan": {
+        "numero": {
+          "status": "mapped",
+          "from": [
+            "Num. pedido"
+          ],
+          "transforms": []
+        },
+        "fecha": {
+          "status": "mapped",
+          "from": [
+            "Fecha pedido"
+          ],
+          "transforms": [
+            {
+              "op": "date",
+              "from": [
+                "%d-%m-%Y",
+                "%d/%m/%Y",
+                "%Y-%m-%d"
+              ]
+            }
+          ]
+        },
+        "cliente.nombre": {
+          "status": "mapped",
+          "from": [
+            "Cliente"
+          ],
+          "transforms": []
+        },
+        "cliente.nif": {
+          "status": "mapped",
+          "from": [
+            "NIF cliente"
+          ],
+          "transforms": []
+        },
+        "cliente.email": {
+          "status": "mapped",
+          "from": [
+            "E-mail"
+          ],
+          "transforms": []
+        },
+        "entrega.ciudad": {
+          "status": "mapped",
+          "from": [
+            "Ciudad entrega"
+          ],
+          "transforms": []
+        },
+        "lineas[].referencia": {
+          "status": "mapped",
+          "from": [
+            "Ref."
+          ],
+          "transforms": []
+        },
+        "lineas[].descripcion": {
+          "status": "mapped",
+          "from": [
+            "Descripción artículo"
+          ],
+          "transforms": []
+        },
+        "lineas[].cantidad": {
+          "status": "mapped",
+          "from": [
+            "Cantidad (uds)"
+          ],
+          "transforms": [
+            {
+              "op": "number"
+            }
+          ]
+        },
+        "lineas[].precio_unitario": {
+          "status": "mapped",
+          "from": [
+            "Precio unitario €"
+          ],
+          "transforms": [
+            {
+              "op": "number",
+              "decimal": ","
+            }
+          ]
+        },
+        "lineas[].descuento_pct": {
+          "status": "mapped",
+          "from": [
+            "% Dto."
+          ],
+          "transforms": [
+            {
+              "op": "number"
+            }
+          ]
+        }
+      },
+      "items": [
+        {
+          "numero": "PED-1001",
+          "fecha": "2026-01-15",
+          "cliente": {
+            "nombre": "Ferretería Norte SL",
+            "nif": "B00000001",
+            "email": "compras@ferreteria-norte.example"
+          },
+          "entrega": {
+            "ciudad": "Oviedo"
+          },
+          "lineas": [
+            {
+              "referencia": "T-440",
+              "descripcion": "Tornillo 4x40 (caja 100)",
+              "cantidad": 3,
+              "precio_unitario": 4.95,
+              "descuento_pct": 0
+            },
+            {
+              "referencia": "B-12",
+              "descripcion": "Broca HSS 12 mm",
+              "cantidad": 10,
+              "precio_unitario": 2.1,
+              "descuento_pct": 5
+            }
+          ]
+        },
+        {
+          "numero": "PED-1002",
+          "fecha": "2026-01-16",
+          "cliente": {
+            "nombre": "Talleres Sela SA",
+            "nif": "A00000002",
+            "email": "pedidos@talleres-sela.example"
+          },
+          "entrega": {
+            "ciudad": "Gijón"
+          },
+          "lineas": [
+            {
+              "referencia": "L-01",
+              "descripcion": "Llave inglesa 10\"",
+              "cantidad": 2,
+              "precio_unitario": 12.5,
+              "descuento_pct": 0
+            }
+          ]
+        },
+        {
+          "numero": "PED-1003",
+          "fecha": "2026-01-17",
+          "cliente": {
+            "nombre": "Construcciones Prieto SL",
+            "nif": "B00000003",
+            "email": "obra@prieto.example"
+          },
+          "entrega": {
+            "ciudad": "Avilés"
+          },
+          "lineas": [
+            {
+              "referencia": "C-25",
+              "descripcion": "Cemento cola 25 kg",
+              "cantidad": 40,
+              "precio_unitario": 6.8,
+              "descuento_pct": 10
+            },
+            {
+              "referencia": "G-02",
+              "descripcion": "Guantes de nitrilo (par)",
+              "cantidad": 50,
+              "precio_unitario": 0.85,
+              "descuento_pct": 10
+            },
+            {
+              "referencia": "P-10",
+              "descripcion": "Paleta de albañil",
+              "cantidad": 4,
+              "precio_unitario": 7.3,
+              "descuento_pct": 10
+            }
+          ]
+        }
+      ],
+      "rejected_rows": [
+        6
+      ]
+    },
+    "pedido_xml": {
+      "plan": {
+        "pedido.@numero": {
+          "status": "mapped",
+          "from": [
+            "Num. pedido"
+          ],
+          "transforms": []
+        },
+        "pedido.fecha": {
+          "status": "mapped",
+          "from": [
+            "Fecha pedido"
+          ],
+          "transforms": [
+            {
+              "op": "date",
+              "from": [
+                "%d-%m-%Y",
+                "%d/%m/%Y",
+                "%Y-%m-%d"
+              ]
+            }
+          ]
+        },
+        "pedido.cliente.nombre": {
+          "status": "mapped",
+          "from": [
+            "Cliente"
+          ],
+          "transforms": []
+        },
+        "pedido.cliente.nif": {
+          "status": "mapped",
+          "from": [
+            "NIF cliente"
+          ],
+          "transforms": []
+        },
+        "pedido.cliente.email": {
+          "status": "mapped",
+          "from": [
+            "E-mail"
+          ],
+          "transforms": []
+        },
+        "pedido.entrega.ciudad": {
+          "status": "mapped",
+          "from": [
+            "Ciudad entrega"
+          ],
+          "transforms": []
+        },
+        "pedido.lineas.linea[].referencia": {
+          "status": "mapped",
+          "from": [
+            "Ref."
+          ],
+          "transforms": []
+        },
+        "pedido.lineas.linea[].descripcion": {
+          "status": "mapped",
+          "from": [
+            "Descripción artículo"
+          ],
+          "transforms": []
+        },
+        "pedido.lineas.linea[].cantidad": {
+          "status": "mapped",
+          "from": [
+            "Cantidad (uds)"
+          ],
+          "transforms": [
+            {
+              "op": "number"
+            }
+          ]
+        },
+        "pedido.lineas.linea[].precio_unitario": {
+          "status": "mapped",
+          "from": [
+            "Precio unitario €"
+          ],
+          "transforms": [
+            {
+              "op": "number",
+              "decimal": ","
+            }
+          ]
+        },
+        "pedido.lineas.linea[].descuento_pct": {
+          "status": "mapped",
+          "from": [
+            "% Dto."
+          ],
+          "transforms": [
+            {
+              "op": "number"
+            }
+          ]
+        }
+      },
+      "items": [
+        {
+          "pedido": {
+            "@numero": "PED-1001",
+            "fecha": "2026-01-15",
+            "cliente": {
+              "nombre": "Ferretería Norte SL",
+              "nif": "B00000001",
+              "email": "compras@ferreteria-norte.example"
+            },
+            "entrega": {
+              "ciudad": "Oviedo"
+            },
+            "lineas": {
+              "linea": [
+                {
+                  "referencia": "T-440",
+                  "descripcion": "Tornillo 4x40 (caja 100)",
+                  "cantidad": 3,
+                  "precio_unitario": 4.95,
+                  "descuento_pct": 0
+                },
+                {
+                  "referencia": "B-12",
+                  "descripcion": "Broca HSS 12 mm",
+                  "cantidad": 10,
+                  "precio_unitario": 2.1,
+                  "descuento_pct": 5
+                }
+              ]
+            }
+          }
+        },
+        {
+          "pedido": {
+            "@numero": "PED-1002",
+            "fecha": "2026-01-16",
+            "cliente": {
+              "nombre": "Talleres Sela SA",
+              "nif": "A00000002",
+              "email": "pedidos@talleres-sela.example"
+            },
+            "entrega": {
+              "ciudad": "Gijón"
+            },
+            "lineas": {
+              "linea": [
+                {
+                  "referencia": "L-01",
+                  "descripcion": "Llave inglesa 10\"",
+                  "cantidad": 2,
+                  "precio_unitario": 12.5,
+                  "descuento_pct": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "pedido": {
+            "@numero": "PED-1003",
+            "fecha": "2026-01-17",
+            "cliente": {
+              "nombre": "Construcciones Prieto SL",
+              "nif": "B00000003",
+              "email": "obra@prieto.example"
+            },
+            "entrega": {
+              "ciudad": "Avilés"
+            },
+            "lineas": {
+              "linea": [
+                {
+                  "referencia": "C-25",
+                  "descripcion": "Cemento cola 25 kg",
+                  "cantidad": 40,
+                  "precio_unitario": 6.8,
+                  "descuento_pct": 10
+                },
+                {
+                  "referencia": "G-02",
+                  "descripcion": "Guantes de nitrilo (par)",
+                  "cantidad": 50,
+                  "precio_unitario": 0.85,
+                  "descuento_pct": 10
+                },
+                {
+                  "referencia": "P-10",
+                  "descripcion": "Paleta de albañil",
+                  "cantidad": 4,
+                  "precio_unitario": 7.3,
+                  "descuento_pct": 10
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "rejected_rows": [
+        6
+      ]
+    }
+  }
+}

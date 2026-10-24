@@ -309,8 +309,11 @@ def h5() -> None:
     ANSWERS["h5_excel_dificil.xlsx"] = {
         "plan": {
             "paciente.id": m("Identificación / NHC"), "paciente.dni": m("Identificación / DNI"),
-            "paciente.nombre": gap("'Nombre completo' needs splitting into given name and surnames"),
-            "paciente.apellidos": gap("'Nombre completo' needs splitting into given name and surnames"),
+            # 'Nombre completo' is split: given name(s), then two surnames (phase 7)
+            "paciente.nombre": m("Identificación / Nombre completo",
+                                 t=[{"op": "name_part", "part": "given", "surnames": 2}]),
+            "paciente.apellidos": m("Identificación / Nombre completo",
+                                    t=[{"op": "name_part", "part": "family", "surnames": 2}]),
             "paciente.fecha_nacimiento": m("Identificación / Fecha nacimiento",
                                            t=[{"op": "date", "from": ["%d/%m/%Y", "%Y-%m-%d"]}]),
             "paciente.sexo": m("Clínica / Sexo", t=[{"op": "translate", "values": {"Hombre": "male", "Mujer": "female"}}]),
@@ -323,11 +326,11 @@ def h5() -> None:
             "datos_clinicos.alergia": m("Clínica / Alergias"), "datos_clinicos.medico_responsable": NO,
         },
         "records": [
-            record(id="E-1", dni="12345678Z", fecha_nacimiento="1985-04-12", sexo="female", telefono="+34600112233", ciudad="Alicante",
+            record(id="E-1", dni="12345678Z", nombre="Ana", apellidos="Pérez Gil", fecha_nacimiento="1985-04-12", sexo="female", telefono="+34600112233", ciudad="Alicante",
                    codigo_postal="03001", grupo_sanguineo="A+", peso_kg=65.5, altura_cm=168, alergia="Penicilina"),
-            record(id="E-2", dni="87654321X", fecha_nacimiento="1960-11-05", sexo="male", telefono="+34600445566", ciudad="Gijón",
+            record(id="E-2", dni="87654321X", nombre="Javier", apellidos="Muñoz Fernández", fecha_nacimiento="1960-11-05", sexo="male", telefono="+34600445566", ciudad="Gijón",
                    codigo_postal="33212", grupo_sanguineo="O-", peso_kg=72.5, altura_cm=172),
-            record(id="E-3", dni="53123456T", fecha_nacimiento="2001-09-07", sexo="female", telefono="+34600778899", ciudad="Avilés",
+            record(id="E-3", dni="53123456T", nombre="Lucía María", apellidos="Álvarez Castro", fecha_nacimiento="2001-09-07", sexo="female", telefono="+34600778899", ciudad="Avilés",
                    codigo_postal="33402", grupo_sanguineo="AB+", peso_kg=54, altura_cm=160, alergia="Marisco"),
         ],
         "rejected": [],

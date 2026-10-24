@@ -910,12 +910,30 @@
         "transforms": []
       },
       "paciente.nombre": {
-        "status": "gap",
-        "why": "'Nombre completo' needs splitting into given name and surnames"
+        "status": "mapped",
+        "from": [
+          "Identificación / Nombre completo"
+        ],
+        "transforms": [
+          {
+            "op": "name_part",
+            "part": "given",
+            "surnames": 2
+          }
+        ]
       },
       "paciente.apellidos": {
-        "status": "gap",
-        "why": "'Nombre completo' needs splitting into given name and surnames"
+        "status": "mapped",
+        "from": [
+          "Identificación / Nombre completo"
+        ],
+        "transforms": [
+          {
+            "op": "name_part",
+            "part": "family",
+            "surnames": 2
+          }
+        ]
       },
       "paciente.fecha_nacimiento": {
         "status": "mapped",
@@ -1033,8 +1051,8 @@
         "paciente": {
           "id": "E-1",
           "dni": "12345678Z",
-          "nombre": null,
-          "apellidos": null,
+          "nombre": "Ana",
+          "apellidos": "Pérez Gil",
           "fecha_nacimiento": "1985-04-12",
           "sexo": "female",
           "telefono": "+34600112233"
@@ -1056,8 +1074,8 @@
         "paciente": {
           "id": "E-2",
           "dni": "87654321X",
-          "nombre": null,
-          "apellidos": null,
+          "nombre": "Javier",
+          "apellidos": "Muñoz Fernández",
           "fecha_nacimiento": "1960-11-05",
           "sexo": "male",
           "telefono": "+34600445566"
@@ -1079,8 +1097,8 @@
         "paciente": {
           "id": "E-3",
           "dni": "53123456T",
-          "nombre": null,
-          "apellidos": null,
+          "nombre": "Lucía María",
+          "apellidos": "Álvarez Castro",
           "fecha_nacimiento": "2001-09-07",
           "sexo": "female",
           "telefono": "+34600778899"

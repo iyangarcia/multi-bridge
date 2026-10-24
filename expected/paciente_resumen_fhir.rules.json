@@ -1,0 +1,9 @@
+{
+  "$pack": "clinical",
+  "$extension_base": "https://multibridge.example/fhir/extension/",
+  "Patient.identifier.value": {"required": true},
+  "Patient.name.family": {"required": true, "case": "title"},
+  "Patient.name.given": {"case": "title"},
+  "AllergyIntolerance.code.text": {"multiple": "list"},
+  "Condition.code.text": {"multiple": "list"}
+}

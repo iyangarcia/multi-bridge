@@ -22,6 +22,11 @@ from multibridge.records import to_rows
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 HOSPITALS = ["hospital_alvarez_buylla.csv", "hospital_leon_fhir.json", "huca_oviedo_hl7v23.hl7"]
+# Phase 7: messy Excel -> FHIR Bundle. The reviewer's decision on every unused column (D14):
+# carry the triage level and the blood group as extensions, drop the rest on record.
+FHIR_BUNDLE = ROOT / "expected" / "paciente_resumen_fhir.example.json"
+EXCEL_TO_FHIR = {"hospital_c_messy.xlsx": ["Clínica / Campo libre 1"],
+                 "hard/h5_excel_dificil.xlsx": ["Clínica / Grupo sanguíneo"]}
 
 
 def reduced(recipe: dict) -> dict:
@@ -42,6 +47,20 @@ def main() -> None:
             p.parent.mkdir(exist_ok=True)
             p.write_text(json.dumps(content, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"{name}: {len(result.records)} records, {len(result.rejected)} rejected")
+
+    bundle = Expected.load(FHIR_BUNDLE)
+    for name, carry in EXCEL_TO_FHIR.items():
+        rows = to_rows(load(ROOT / "examples" / name))
+        draft = propose(rows, bundle)
+        recipe = approve(draft, bundle, by="golden", carry=carry)
+        result = run(rows, recipe, bundle)
+        stem = Path(name).stem
+        plan = {"fields": reduced(draft), "extras": {k: recipe["extras"][k] for k in ("carry", "drop")}}
+        (HERE / "fhir").mkdir(exist_ok=True)
+        (HERE / "fhir" / f"{stem}.plan.json").write_text(
+            json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (HERE / "fhir" / f"{stem}.bundle.json").write_bytes(result.write(bundle))
+        print(f"{name} -> FHIR: {len(result.items)} patients, {len(result.rejected)} rejected")
 
 
 if __name__ == "__main__":

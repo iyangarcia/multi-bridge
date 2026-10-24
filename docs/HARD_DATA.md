@@ -12,8 +12,6 @@
 
 ## Feature gaps the files expose (correct recipe not expressible yet)
 
-- `paciente.apellidos`: 'Nombre completo' needs splitting into given name and surnames
-- `paciente.nombre`: 'Nombre completo' needs splitting into given name and surnames
 
 ## Details
 

@@ -50,8 +50,8 @@ def excel_destination() -> Expected:
 
 def destinations() -> dict[str, Expected]:
     out = {"json": Expected.load(ROOT / "expected" / "cdss_paciente.example.json")}
-    for p in sorted(DEST.glob("*.example.*")):
-        out[p.name] = Expected.load(p)
+    for p in [*sorted(DEST.glob("paciente_*.example.*")), ROOT / "expected" / "paciente_resumen_fhir.example.json"]:
+        out[p.name] = Expected.load(p)     # patient destinations (the order ones are phase 8's, test_translations.py)
     out["excel"] = excel_destination()
     return out
 

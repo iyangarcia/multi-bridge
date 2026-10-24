@@ -65,6 +65,7 @@ const CONCEPTOS_HUMANOS = {
   peso:             { nombre: "Peso", ayuda: "Peso del paciente en kilos" },
   altura:           { nombre: "Altura", ayuda: "Altura (talla) del paciente en centímetros" },
   alergia:          { nombre: "Alergias", ayuda: "Sustancias que le provocan reacción, por ejemplo la penicilina" },
+  diagnostico:      { nombre: "Diagnósticos", ayuda: "Problemas de salud del paciente, tal como los escribe el centro (texto)" },
   medico:           { nombre: "Médico responsable", ayuda: "Médico que atiende al paciente" }
 };
 
@@ -110,6 +111,7 @@ const EJEMPLOS = {
   "hospital_a_diagnosticos.hl7": ["Otros ejemplos", "Diagnósticos"],
   "hospital_b_condiciones.json": ["Otros ejemplos", "Condiciones", "FHIR"],
   "hospital_c_messy.xlsx": ["Otros ejemplos", "Hoja desordenada"],
+  "pedidos/pedidos_lineas.csv": ["Otros ejemplos", "Líneas de pedido (no clínico)"],
   "hard/h1_ingles_comas.csv": ["Datos difíciles", "En inglés y con comas"],
   "hard/h2_cifrado.csv": ["Datos difíciles", "Cabeceras en clave"],
   "hard/h3_hl7_v25.hl7": ["Datos difíciles", "HL7 versión 2.5"],

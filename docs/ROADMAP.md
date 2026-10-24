@@ -12,8 +12,9 @@ next is phase 7.*
    [JEV.md](JEV.md) (what "JEV" means), then the [README](../README.md).
 2. Run the tests: `.venv/Scripts/python -m pytest -q`. They must pass before and after your changes.
 3. Read section 2a: the project is now a **translator from any format to any format**, not a
-   hospital mapper. Phases 5 and 6 are done; the next work is phase 7, then 8. Phase 2's
-   re-run and phase 4's leftovers can be picked up in between. Update the checkboxes and the
+   hospital mapper. Phases 5–8 are done (6b and 6c too). Open next steps, the user's pick: measure
+   qwen3:8b on the translations (`scripts/translations.py`, needs Ollama), ICD-10 coding with C10,
+   the HL7 v2 writer, nested groups, phase 9. Update the checkboxes and the
    session log (section 8) as you go.
 
 ## 1. Hard rules (non-negotiable)
@@ -188,7 +189,7 @@ trying `map` before phase 1. It is unused; the user can delete it.
 | D7 | `qwen3:8b` is the baseline the project must work with (hospital servers are weaker); `qwen3:30b` is the strong tier. Choose by measuring against the golden plans, not by feel | agreed |
 | D8 | What the AI sees: level 3 = *shape-preserving fake samples* for sensitive columns; real values only for columns cleared as harmless categories (default deny, C6); free text sent as normalised concepts, not raw text | agreed |
 | D9 | Jev later, behind an interface copying its choice/score/noul primitives (rules / local / jev backends), structure only | agreed |
-| D10 | **The review UI is the hackathon website, reused, not Streamlit.** Copy it from `TalentUO 2026 Grupo 5/app/` into `web/` (the hackathon folder stays untouched). Remove client branding. Replace its JavaScript parsers and simulated AI with calls to a small local Python API, so there is one implementation of the logic. See phase 3 | started at the user's request 2026-10-22 and implemented (phase 3). Client branding removed; Grupo 5 credited. Still worth confirming the team is fine with the reuse |
+| D10 | **The review UI is the hackathon website, reused, not Streamlit.** Copy it from `TalentUO 2026 Grupo 5/app/` into `web/` (the hackathon folder stays untouched). Remove client branding. Replace its JavaScript parsers and simulated AI with calls to a small local Python API, so there is one implementation of the logic. See phase 3 | started at the user's request 2026-10-22 and implemented (phase 3). Client branding removed; Grupo 5 credited. Grupo 5 is OK with the reuse (user, 2026-10-24) |
 | D11 | **Generic core + domain packs.** The project is a translator from any format to any format (section 2a). The core knows formats and structure only; clinical knowledge moves into the first domain pack | approved by the user 2026-10-22 |
 | D12 | **First translations: messy Excel → FHIR** (clinical pack) **and CSV → nested XML or JSON** (no pack). They differ in domain, direction of cardinality and output shape, so together they prove "any to any" | approved by the user 2026-10-22 |
 | D13 | **Format plug-in = reader + writer + checker**, registered by format; no code per pair of formats. Extends D3: EXPECTED is an example in *any* format, read by its own reader | proposed, follows from D11 |
@@ -511,28 +512,79 @@ changed from that page, not only by uploading a file in "Traducir datos".
 - [ ] Not done: editing a format made from an example in the page (it changes by changing the
       example); duplicating one as a field list.
 
-### Phase 7: first translation A — messy Excel → FHIR (clinical pack)
-- [ ] Destination example: a synthetic FHIR Bundle (Patient + Observation + AllergyIntolerance +
-      Condition) in `expected/`.
-- [ ] Sources: the hackathon Excel and the hard Excel (`examples/hard/`), with custom columns.
-- [ ] One row → a Patient plus several resources linked by reference; measurements as
-      Observations with LOINC and UCUM units; custom columns carried as extensions or dropped on
-      purpose.
-- [ ] Golden test (reviewed plan + output Bundle) and a hard-data score, rules and qwen3:8b.
-- [ ] Reviewed end to end in the web app.
-- **Done when:** the Bundles pass the FHIR checker, match the golden output and no source column
-  disappears without a recorded decision.
+### Phases 7 + 8: the two first translations, done together — done 2026-10-24
+Asked by the user ("perform the next stage implementation (7 and 8) as they can be compacted into one").
+Both run through the same pipeline and review screen; nothing in the core is per format or per
+domain (`tests/test_generic.py` still greps it). Measured by `scripts/translations.py` →
+`docs/TRANSLATIONS.md`.
 
-### Phase 8: first translation B — CSV → nested XML or JSON (no pack)
-- [ ] A non-clinical synthetic dataset with a known answer (e.g. order lines → orders with a
-      customer and nested lines), messy like the hard set: odd headers, mixed dates, decimal commas,
-      custom columns.
-- [ ] Destination example: nested XML and the same in JSON.
-- [ ] Many rows → one output item (group by order number).
-- [ ] Measure the proposer with no pack (rules and qwen3:8b): how many fields right, pending,
-      wrong. Wrong must stay at 0.
-- **Done when:** both translations (phase 7 and 8) run through the same pipeline and review screen
-  with no format- or domain-specific code in the core.
+**A. messy Excel → FHIR (clinical pack)**
+- [x] Destination `expected/paciente_resumen_fhir.example.json` + rules: a synthetic Bundle with Patient,
+      weight and height Observations (LOINC 29463-7 / 8302-2, UCUM kg / cm, vital-signs category),
+      AllergyIntolerance and Condition. Allergies and diagnoses are list targets (`"multiple": "list"`).
+- [x] **One row → a Patient + linked resources, with variable fan-out:** the FHIR writer writes a
+      resource once per value when a one-value slot gets a list (`Condition.code.text` ← "DM2…",
+      "HTA", "DLP" → three Conditions), each with its own `urn:uuid` and its reference to the Patient.
+      A list element whose data is all empty goes with its fixed leaves (no more
+      `telecom: [{"system": "phone"}]` without a number — a phase 6 bug).
+- [x] **Full-name columns are split** (the phase 4 leftover): engine transform `name_part`
+      (`{"part": "given" | "family", "surnames": 2}`; particles stay with their surname: "Ana de la
+      Fuente Gil" → "Ana" / "de la Fuente Gil"). A pack hook `part_of` lets one column feed every one
+      of its parts; the clinical pack uses it for "Nombre completo" / "Nombre y apellidos". Mapped with
+      an issue ("revisar nombres compuestos"). The AI proposer's cross-check still marks such a column
+      pending (not re-measured: needs Ollama).
+- [x] **Several values:** a list target takes the values of every `from` column in order (no
+      `join_columns`), and `split_values` (`{"sep": ";"}`) splits "HTA; DLP". The clinical pack proposes
+      "Diagnóstico principal" + "Otros diagnósticos" together for a list of diagnoses.
+- [x] Fixed on the way: a column of recognised diagnoses whose description says "texto libre del
+      médico" was taken as the doctor's (role practitioner); a column of the pack's terms now belongs to
+      the record's subject. Synonyms "diagnosticos", "diagnoses", "conditions", "juicio clinico".
+- [x] Custom columns: hospital C's triage level carried as an `extension`, the unnamed column K
+      dropped on record; h5's blood group carried, DNI dropped. Every non-empty source column has a
+      recorded decision (test).
+- [x] Golden: `tests/golden/fhir/<file>.plan.json` (reviewed plan + carry/drop) and
+      `<file>.bundle.json` (byte for byte) for `hospital_c_messy.xlsx` and `hard/h5_excel_dificil.xlsx`,
+      built by `tests/golden/build_golden.py` and reviewed patient by patient. The checker passes.
+- [x] Hard data: h5's two "gap" fields (the name split) are now real answers; h5 is 15/0/0.
+- [x] Reviewed end to end in the web app (6/6, one extra, one drop; "Diagnósticos" label added).
+- [ ] Not done: diagnosis text → ICD-10 coding. Diagnoses go as `code.text` only, so nothing clinical
+      is changed (C10); a coding transform must keep the text next to the code and be approved.
+      FHIR `given` gets "Lucía María" as one element, not two.
+- [x] qwen3:8b measured 2026-10-24 (`scripts/translations.py rules qwen3:8b`). First run: hospital C
+      9/12 with **1 wrong** (`Condition.code.text` from "Diagnóstico principal" only), h5 10/12; the name
+      split always pending. Then, at the user's request, **the AI path uses the same structure as the
+      rules** (`proposer._fields_from_answer`): a full-name column feeds both parts (`part_of`; the
+      clinical `conflict` no longer flags it; if the model picks another column, the split column is
+      offered as pending), and a list target takes every column the rules found. The clinical system
+      prompt now says a full-name column may go to both targets. Re-measured: hospital C **10/12, 2
+      pending, 0 wrong**; h5 **11/12, 1 pending, 0 wrong** (`given` stays pending with the right column:
+      the model doubts the split). The 3-hospital eval (`docs/EVAL.md`) with qwen3:8b after the prompt
+      change: 15/15, 15/15, 15/15 (no regression; 30b not re-run).
+**B. CSV → nested JSON and XML (no pack)**
+- [x] Synthetic orders dataset `examples/pedidos/` (`build_pedidos.py` → `pedidos_lineas.csv` +
+      `answers.json`): a wholesaler's order lines with a title line, odd headers ("Num. pedido",
+      "Ref.", "% Dto."), three date shapes, decimal commas, an empty line, a total line, two custom
+      columns and one line without an order number. Answers to the phase 8 open question: **both** XML
+      and JSON, domain **orders**.
+- [x] Destinations `examples/destinos/pedido_json.example.json` and `pedido_xml.example.xml` (order
+      number as an attribute, `cliente` and `entrega` objects, repeated `linea`), each with
+      `$group_by` on the order number: 7 rows → 3 orders, the line with no number set aside with its
+      reason.
+- [x] **Matching with no vocabulary, word by word** (`matcher.name_match`): the target's name and the
+      names it sits under ("NIF cliente" → `cliente.nif`, "Ciudad entrega" → `entrega.ciudad`), cut words
+      ("Num." → número, "Ref." → referencia), joined words ("E-mail"). Guesses stay **pending** with the
+      column already chosen: an abbreviation ("% Dto." → descuento_pct) or a column named after the
+      object ("Cliente" → `cliente.nombre`). With no pack, a fair candidate (≥ 0.4) is pending instead
+      of "no data", so data is never left out silently. Only for targets with no concept: the clinical
+      destinations behave exactly as before (behaviour snapshot unchanged apart from the name split).
+- [x] Measured: rules **9 right, 2 pending, 0 wrong** for both JSON and XML; qwen3:8b **11/11, 0
+      wrong** for both (~22 s); reviewed output equal
+      to the known answer; the XML reads back. Reviewed end to end in the web app ("Líneas de pedido"
+      in the examples dropdown).
+- [x] `tests/test_translations.py` (15 tests). **261 tests pass.**
+- **Done when:** met — both translations run through the same pipeline and review screen, pass their
+  checkers, match the known output, and no source column disappears without a recorded decision.
+  Left: ICD-10 coding (C10), nested groups deeper than one level, qwen3:30b re-run.
 
 ### Later (unordered)
 - HL7 v2 writer + checker (the hardest standard to write correctly).
@@ -555,20 +607,27 @@ changed from that page, not only by uploading a file in "Traducir datos".
 
 ## 7. Open questions for the user
 
-- D10 is implemented with the client branding removed. Is Grupo 5 OK with its UI living in this
-  repo (credited in the footer and README)?
-- Phase 8: XML, JSON or both as the destination? And which non-clinical domain for its dataset
-  (orders is the proposal)?
 - The repo is called `multibridge-mapper`; does the name stay now that it's a translator? (User's
-  call; GitHub is theirs.)
-- FHIR extensions need a base URL for custom fields. Which one?
+  call; GitHub is theirs.) The user's answer (2026-10-24): "i dont know you might meed to ask me" —
+  still open: ask again, with a few name ideas.
+- *Answered 2026-10-24:* Grupo 5 is OK with its UI living in this repo (D10). Phase 8's destination:
+  any format (done as both JSON and XML, orders as the domain).
+- FHIR extensions need a base URL for custom fields. Which one? 
 - D13–D15 follow from the approved direction; confirm them. (D15 is already applied to
   COMPLIANCE.md in phase 5.)
-- A `multibridge serve` you started yourself at 22:45 still runs on port 8766 with the code from
-  before phase 5; restart it to get the new code.
 - Add the C1 rule ("never put real patient data in this repo") to `CLAUDE.md`. That's the user's file.
 
 ## 8. Session log (newest first, append only)
+
+- **2026-10-24 (later):** Phases 7 and 8 together at the user's request. Excel → FHIR Bundle (name
+  split, one Condition / AllergyIntolerance per value, triage carried as an extension) with golden
+  Bundles; CSV order lines → nested JSON and XML with no pack (word-by-word name matching, 9 right /
+  2 pending / 0 wrong). `docs/TRANSLATIONS.md`, 261 tests pass, both checked in the web app. Then, at
+  the user's request, qwen3:8b measured (after a laptop shutdown, rerun): orders 11/11 with 0 wrong;
+  Excel → FHIR 9–10/12 with 1 wrong (one diagnosis column of two) and the name split pending.
+  Fixed by letting the AI path reuse the rules' structure (name split, list columns) plus a prompt
+  line: Excel → FHIR now 10–11/12 with 0 wrong; 3-hospital eval 45/45. 262 tests pass. Next: the user's pick — qwen measurement, ICD-10 coding (C10),
+  HL7 v2 writer.
 
 - **2026-10-24:** Phase 6c at the user's request: "Formatos de destino" page where formats are
   created, edited, renamed and deleted (saved as `expected/<name>.fields.json`); examples in one

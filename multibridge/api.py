@@ -127,7 +127,7 @@ class App:
 
     def _examples(self) -> dict[str, Path]:
         out = {}
-        for folder in (self.root / "examples", self.root / "examples" / "hard"):
+        for folder in (self.root / "examples", self.root / "examples" / "hard", self.root / "examples" / "pedidos"):
             for p in sorted(folder.glob("*")):
                 if p.suffix.lower() in EXAMPLE_SUFFIXES and p.name not in NOT_EXAMPLES:
                     out[p.relative_to(self.root / "examples").as_posix()] = p

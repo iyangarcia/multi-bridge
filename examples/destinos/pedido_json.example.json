@@ -1,0 +1,11 @@
+[
+  {
+    "numero": "PED-0001",
+    "fecha": "2026-01-01",
+    "cliente": {"nombre": "Empresa Ejemplo SL", "nif": "B00000000", "email": "compras@empresa.example"},
+    "entrega": {"ciudad": "Oviedo"},
+    "lineas": [
+      {"referencia": "X-1", "descripcion": "Artículo de ejemplo", "cantidad": 1, "precio_unitario": 9.95, "descuento_pct": 0}
+    ]
+  }
+]

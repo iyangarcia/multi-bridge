@@ -1,0 +1,4 @@
+{
+  "$group_by": "pedido.@numero",
+  "pedido.@numero": {"required": true}
+}

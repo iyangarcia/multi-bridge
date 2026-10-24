@@ -1,0 +1,122 @@
+{
+  "fields": {
+    "Patient.identifier.value": {
+      "status": "mapped",
+      "from": [
+        "Paciente / NHC"
+      ],
+      "transforms": []
+    },
+    "Patient.name.family": {
+      "status": "mapped",
+      "from": [
+        "Paciente / Nombre y apellidos"
+      ],
+      "transforms": [
+        {
+          "op": "name_part",
+          "part": "family",
+          "surnames": 2
+        }
+      ]
+    },
+    "Patient.name.given": {
+      "status": "mapped",
+      "from": [
+        "Paciente / Nombre y apellidos"
+      ],
+      "transforms": [
+        {
+          "op": "name_part",
+          "part": "given",
+          "surnames": 2
+        }
+      ]
+    },
+    "Patient.gender": {
+      "status": "mapped",
+      "from": [
+        "Paciente / Sexo"
+      ],
+      "transforms": [
+        {
+          "op": "translate",
+          "values": {
+            "H": "male",
+            "M": "female"
+          }
+        }
+      ]
+    },
+    "Patient.birthDate": {
+      "status": "mapped",
+      "from": [
+        "Paciente / F. Nac."
+      ],
+      "transforms": []
+    },
+    "Patient.telecom.value": {
+      "status": "no_data",
+      "from": [],
+      "transforms": []
+    },
+    "Patient.address.city": {
+      "status": "no_data",
+      "from": [],
+      "transforms": []
+    },
+    "Patient.address.postalCode": {
+      "status": "no_data",
+      "from": [],
+      "transforms": []
+    },
+    "Observation[29463-7].valueQuantity.value": {
+      "status": "mapped",
+      "from": [
+        "Antropometría / Peso (kg)"
+      ],
+      "transforms": [
+        {
+          "op": "number"
+        }
+      ]
+    },
+    "Observation[8302-2].valueQuantity.value": {
+      "status": "mapped",
+      "from": [
+        "Antropometría / Talla (cm)"
+      ],
+      "transforms": [
+        {
+          "op": "number"
+        }
+      ]
+    },
+    "AllergyIntolerance.code.text": {
+      "status": "no_data",
+      "from": [],
+      "transforms": []
+    },
+    "Condition.code.text": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Diagnóstico principal",
+        "Clínica / Otros diagnósticos"
+      ],
+      "transforms": [
+        {
+          "op": "split_values",
+          "sep": ";"
+        }
+      ]
+    }
+  },
+  "extras": {
+    "carry": [
+      "Clínica / Campo libre 1"
+    ],
+    "drop": [
+      "(sin cabecera) columna K"
+    ]
+  }
+}

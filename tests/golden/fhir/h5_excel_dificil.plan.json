@@ -1,0 +1,131 @@
+{
+  "fields": {
+    "Patient.identifier.value": {
+      "status": "mapped",
+      "from": [
+        "Identificación / NHC"
+      ],
+      "transforms": []
+    },
+    "Patient.name.family": {
+      "status": "mapped",
+      "from": [
+        "Identificación / Nombre completo"
+      ],
+      "transforms": [
+        {
+          "op": "name_part",
+          "part": "family",
+          "surnames": 2
+        }
+      ]
+    },
+    "Patient.name.given": {
+      "status": "mapped",
+      "from": [
+        "Identificación / Nombre completo"
+      ],
+      "transforms": [
+        {
+          "op": "name_part",
+          "part": "given",
+          "surnames": 2
+        }
+      ]
+    },
+    "Patient.gender": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Sexo"
+      ],
+      "transforms": [
+        {
+          "op": "translate",
+          "values": {
+            "Hombre": "male",
+            "Mujer": "female"
+          }
+        }
+      ]
+    },
+    "Patient.birthDate": {
+      "status": "mapped",
+      "from": [
+        "Identificación / Fecha nacimiento"
+      ],
+      "transforms": [
+        {
+          "op": "date",
+          "from": [
+            "%d/%m/%Y",
+            "%Y-%m-%d"
+          ]
+        }
+      ]
+    },
+    "Patient.telecom.value": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Teléfono"
+      ],
+      "transforms": []
+    },
+    "Patient.address.city": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Ciudad"
+      ],
+      "transforms": []
+    },
+    "Patient.address.postalCode": {
+      "status": "mapped",
+      "from": [
+        "Clínica / CP"
+      ],
+      "transforms": []
+    },
+    "Observation[29463-7].valueQuantity.value": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Peso (kg)"
+      ],
+      "transforms": [
+        {
+          "op": "number",
+          "decimal": ","
+        }
+      ]
+    },
+    "Observation[8302-2].valueQuantity.value": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Altura (cm)"
+      ],
+      "transforms": [
+        {
+          "op": "number"
+        }
+      ]
+    },
+    "AllergyIntolerance.code.text": {
+      "status": "mapped",
+      "from": [
+        "Clínica / Alergias"
+      ],
+      "transforms": []
+    },
+    "Condition.code.text": {
+      "status": "no_data",
+      "from": [],
+      "transforms": []
+    }
+  },
+  "extras": {
+    "carry": [
+      "Clínica / Grupo sanguíneo"
+    ],
+    "drop": [
+      "Identificación / DNI"
+    ]
+  }
+}

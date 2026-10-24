@@ -29,7 +29,9 @@ For EVERY target field return one decision:
 - "pending": a column might hold it, but a human must decide (ambiguous or conflicting).
 
 Rules:
-- Use only column names from the list, exactly as written. Use each column at most once.
+- Use only column names from the list, exactly as written. Use each column at most once, except a
+  full-name column (given name and surnames together): map it to both the given-name and the surname
+  targets as "mapped"; the code splits it (given names, then two surnames), you don't have to.
 - A patient field never comes from another person's column (doctor, relative, contact).
 - Custom fields (HL7 Z-segments, FHIR extensions, unnamed columns) have no documentation: judge them
   by type, number ranges and category values, and say so in "why".
@@ -149,16 +151,20 @@ class Clinical(Pack):
             second = next((c for c in surnames if re.search(r"(2|segundo)", words(rows.columns[c].label))), None)
             if first and second and first != second:
                 out.append((0.92, (first, second), "primer y segundo apellido en columnas separadas: se unen"))
+        if t.concept == "diagnostico" and t.multiple == "list":   # "Diagnóstico principal" + "Otros diagnósticos"
+            dx = sorted((c for c in rows.columns if evs[c].role == self.subject
+                         and evs[c].weights.get("diagnostico", 0) >= 0.9), key=lambda c: rows.columns[c].null_ratio)
+            if len(dx) > 1:
+                out.append((0.9, tuple(dx), "varias columnas de diagnósticos: todas van a la lista"))
         if t.concept == "nombre" and "PID-5.2" in rows.columns and "PID-5.3" in rows.columns:
             out.append((0.95, ("PID-5.2", "PID-5.3"), "nombre de pila + segundo nombre (PID-5.2 + PID-5.3): se unen"))
         return out
 
-    def chosen_issues(self, t, cols, evs):
-        if t.concept in NAME_PARTS and len(cols) == 1 and all(
-                evs[cols[0]].weights.get(k, 0) >= 0.9 for k in NAME_PARTS):
-            # "Nombre completo" / "Nombre y apellidos": the parts must be split first
-            return [f"la columna {cols[0]} tiene nombre y apellidos juntos: hace falta separarlos"]
-        return []
+    def part_of(self, t, ev):
+        # "Nombre completo" / "Nombre y apellidos": given name(s), then two surnames (Spanish convention)
+        if t.concept in NAME_PARTS and ev.role == self.subject and all(ev.weights.get(k, 0) >= 0.9 for k in NAME_PARTS):
+            return {"op": "name_part", "part": "given" if t.concept == "nombre" else "family", "surnames": 2}
+        return None
 
     def no_data_issues(self, rows, usable, t, evs):
         out = []
@@ -182,6 +188,8 @@ class Clinical(Pack):
         if f.kind == self.concept_kind and t.concept != "diagnostico":
             return f"la columna {column} contiene diagnósticos", strong
         if t.concept in NAME_PARTS and len(cols) == 1 and NAME_PARTS <= strong:
+            if self.part_of(t, ev):    # the code splits it (name_part), so it is no conflict
+                return None, strong - NAME_PARTS
             return f"la columna {column} tiene nombre y apellidos juntos: hace falta separarlos", strong
         if t.concept == "medico" and ev.role == "practitioner":
             strong = strong - NAME_PARTS

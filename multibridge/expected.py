@@ -189,9 +189,16 @@ def save_fields(path: str | Path, fmt: str, fields: list[dict]) -> Path:
     return p
 
 
+DEFAULT_DESTINATION = "cdss_paciente"   # the hackathon's destination, also the web app's default
+
+
 def default_destination(folder: str | Path = "expected") -> Path:
-    """The destination to use when none is named: the only `*.example.*` in the folder."""
+    """The destination to use when none is named: the only `*.example.*` in the folder, or the
+    original one when there are several."""
     found = sorted(Path(folder).glob("*.example.*"))
+    original = [p for p in found if p.name.split(".")[0] == DEFAULT_DESTINATION]
+    if len(found) > 1 and original:
+        return original[0]
     if len(found) != 1:
         names = ", ".join(p.name for p in found) or "ninguno"
         raise ValueError(f"indica el destino (--expected): en {folder} hay {len(found)} ejemplos ({names})")
