@@ -15,7 +15,7 @@
       "approval": {"by": "Ana", "at": "...", "sha256": "..."}
     }
 
-Unmatched source fields are never dropped silently (ROADMAP D14): at approval each one is either
+Unmatched source fields are never dropped silently: at approval each one is either
 carried through (the writer puts it in the destination's slot for extras: an extension, an extra
 column or element) or dropped, and `extras` records the decision and who made it.
 

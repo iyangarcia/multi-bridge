@@ -1,4 +1,4 @@
-"""How often proposals at each confidence were right on the generated evaluation set (ROADMAP phase 9).
+"""How often proposals at each confidence were right on the generated evaluation set.
 
 calibration.json is written by scripts/calibrate.py: per proposer ("rules", "qwen3:8b"...), score
 bands with the measured hit rate (made non-decreasing with the score), how many proposals it rests

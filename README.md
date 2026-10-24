@@ -1,11 +1,11 @@
 # Multi Bridge — a data translator from any format to any format
 
-[![tests](https://github.com/iyangarcia/multibridge-mapper/actions/workflows/tests.yml/badge.svg)](https://github.com/iyangarcia/multibridge-mapper/actions/workflows/tests.yml)
+[![tests](https://github.com/iyangarcia/multi-bridge/actions/workflows/tests.yml/badge.svg)](https://github.com/iyangarcia/multi-bridge/actions/workflows/tests.yml)
 
 > Show it one example of how you want your data. It maps the rest, a human approves, and a
 > deterministic engine does the transformation.
 
-**[Try the live demo](https://iyangarcia.github.io/multibridge-mapper/)**: no install needed. The same Python
+**[Try the live demo](https://iyangarcia.github.io/multi-bridge/)**: no install needed. The same Python
 runs inside your browser (Pyodide), so your files never leave your computer. The demo uses the rules
 only. For the local AI, install it on your machine (see [Try it](#try-it)).
 
@@ -13,7 +13,7 @@ Started at **Hackathon TalentUO 2026** (Reto 5, Pragmatech AI Solutions, Grupo 5
 application to three hospitals that speak HL7 v2.3, HL7 FHIR and Excel, **without writing one
 integration per hospital**.
 
-The project is now becoming a **translator for any type of data** (docs/ROADMAP.md, section 2a):
+The project is now becoming a **translator for any type of data**:
 
 - **A generic core** knows formats and structure only.
 - **Format plug-ins** (`multibridge/formats/`) read, write and check each format.
@@ -62,6 +62,9 @@ Every format becomes the same `Field` list and then the same flat rows. Nothing 
 `records.py` knows whether the data came from HL7 or Excel: that is the "no integration per
 hospital" claim, expressed in code. What a record is, and which tables join into it, comes
 from the format plug-in; what the fields mean comes from the destination's pack.
+
+**[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)** goes through each step and shows how every field is
+decided: the evidence, the scores, the transforms, and what makes a field *pending*.
 
 ## Try it
 
@@ -193,7 +196,7 @@ multibridge map examples/huca_oviedo_hl7v23.hl7        # same structure: reuses 
 The same destination example and the same code map the CSV (Hospital C), the FHIR API
 (Hospital B) and the HL7 v2.3 feed (Hospital A). `tests/test_golden.py` checks the proposal and
 every output record for all three. The confidence numbers are hand-weighted rules, **not
-probabilities**, until they are calibrated (roadmap phase 9).
+probabilities**: [docs/CALIBRATION.md](docs/CALIBRATION.md) measures what each score has meant.
 
 ```
 DM2 mal controlada
@@ -234,7 +237,7 @@ DiabA
 | `examples/hard/` + `scripts/hard_data.py` | five hard files rendered from the same invented patients, with known answers → [docs/HARD_DATA.md](docs/HARD_DATA.md) |
 | `examples/pedidos/` + `scripts/translations.py` | the non-clinical order lines (known answer) and the measurement of both first translations → [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) |
 | `evalset/` + `scripts/calibrate.py` | phase 9: generated messy files with known answers, grading by output values, calibrated confidence bands (`multibridge/calibration.json`) → [docs/CALIBRATION.md](docs/CALIBRATION.md) |
-| `docs/` | [ROADMAP](docs/ROADMAP.md) (start here), [COMPLIANCE](docs/COMPLIANCE.md), [JEV](docs/JEV.md) |
+| `docs/` | [HOW_IT_WORKS](docs/HOW_IT_WORKS.md) (start here), [COMPLIANCE](docs/COMPLIANCE.md), [JEV](docs/JEV.md) |
 
 ## Plugging in a format, a domain, or JEV
 
@@ -276,17 +279,8 @@ health data is detected. In short:
 - In the web app you can change a field's column, but not edit its transforms (a translation table, a date format) yet. For that, edit the draft recipe JSON.
 - All data in `examples/` is synthetic.
 
-## Roadmap
+## What's next
 
-See [docs/ROADMAP.md](docs/ROADMAP.md): current state, decisions, and the phases:
-1. simplify to the hackathon design
-2. local Qwen proposer
-3. review UI: the hackathon website wired to a local API
-4. harder data
-5. generic core + clinical pack
-6. destination from any example + writers
-7. first translation: messy Excel → FHIR
-8. second translation: CSV → nested XML or JSON
-9. evaluation and calibration
-10. deployment as a portfolio project: CI and a GitHub Pages demo running the Python in the browser
-    (both done), then Spanish/English for the app and the docs
+- Spanish and English for the docs (the web app already switches)
+- the visitor's own Ollama on the GitHub Pages demo
+- HL7 v2 output, and editing transforms in the web app

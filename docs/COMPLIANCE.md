@@ -1,6 +1,6 @@
 # Legal and data-protection constraints
 
-*Written 2026-10-19; split into a general and a health part on 2026-10-22 (ROADMAP D15), when the
+*Written 2026-10-19; split into a general and a health part on 2026-10-22, when the
 project became a translator for any type of data. This is an engineering checklist, **not legal
 advice**. Before any use with real personal data, the organisation's Data Protection Officer
 (DPD/DPO) and a lawyer must review it, and the organisation must run its own impact assessment
@@ -71,7 +71,7 @@ the destination is known, so health data is flagged even when the destination is
 | **Ley 41/2002** (patient autonomy) | confidentiality of clinical information; the clinical record (*historia clínica*) is the hospital's, kept for at least 5 years after each discharge. Multi Bridge must not become a second, uncontrolled copy of it |
 | **ENS** for health | public hospitals' systems are typically category MEDIA or ALTA |
 | **Medical Device Regulation** (Regulation (EU) 2017/745) + guidance MDCG 2019-11 | software that only stores, transfers or converts data is generally **not** a medical device. **Risk:** turning free-text diagnoses into ICD-10 codes changes clinical information that feeds a CDSS (which may be a device). Keep terminology changes human-approved (C10), and agree with the client's regulatory lead how Multi Bridge appears in the CDSS technical file |
-| **EHDS** (Regulation (EU) 2025/327) | future EU rules for electronic health record systems and interoperability, phased in from 2027 onward. An opportunity: writing FHIR (ROADMAP phase 7) fits where the EU is heading |
+| **EHDS** (Regulation (EU) 2025/327) | future EU rules for electronic health record systems and interoperability, phased in from 2027 onward. An opportunity: writing FHIR fits where the EU is heading |
 
 ---
 
@@ -171,7 +171,7 @@ recognised as ICD-10", from the pack's normalizer), never the raw text, which ca
   second pass), a frozen copy of the original `proposal`, and `changed_by` when the approver's
   decision differs from it.
 - 🟡 The model *version* (Ollama digest) isn't recorded yet, only its name (see C15).
-- ✅ Custom fields (ROADMAP D14, 2026-10-23): every unused source column is either carried through
+- ✅ Custom fields (2026-10-23): every unused source column is either carried through
   or dropped at approval; the recipe's `extras` records both lists and who decided, and the run
   report lists them (`custom_fields`). Carried values are still personal data: they go through
   the same output path as the mapped fields.
@@ -180,7 +180,7 @@ recognised as ICD-10", from the pack's normalizer), never the raw text, which ca
 - ✅ Ambiguous or unknown terms (`IRA`, `DiabA`) are never auto-resolved (`packs/clinical/terms/`).
 - ❌ When a terminology transform exists, a text → code change must be approved like any other
   mapping, and the output must keep the original text next to the code.
-- ✅ Excel → FHIR (ROADMAP phase 7) writes diagnoses and allergies as `code.text` only, exactly as
+- ✅ Excel → FHIR writes diagnoses and allergies as `code.text` only, exactly as
   the source wrote them ("DM2 mal controlada", "IRA"): no code is made up. Splitting a cell of
   several diagnoses ("HTA; DLP") into one Condition each is a structural step, shown and approved in
   the recipe (`split_values`).

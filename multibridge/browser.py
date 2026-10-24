@@ -1,4 +1,4 @@
-"""The API inside the visitor's browser, for the GitHub Pages demo (Pyodide, docs/ROADMAP.md phase 10).
+"""The API inside the visitor's browser, for the GitHub Pages demo (Pyodide).
 
 The page's web worker (web/js/navegador.js) unpacks the package and the synthetic examples into
 Pyodide's file system and calls `call()` instead of fetching /api/... from a server. The answers are the

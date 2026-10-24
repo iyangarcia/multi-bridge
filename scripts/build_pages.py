@@ -3,7 +3,7 @@
     python scripts/build_pages.py            # -> site/
     python -m http.server -d site 8000       # try it: http://localhost:8000
 
-What goes in (docs/ROADMAP.md phase 10):
+What goes in:
 - web/ as it is, with MODO_NAVEGADOR switched on in js/comun.js;
 - demo/multibridge-<hash>.zip: the multibridge package, openpyxl and et_xmlfile (unpacked from their
   wheels, so the browser fetches nothing from PyPI), the synthetic examples and the example

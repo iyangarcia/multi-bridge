@@ -1,4 +1,4 @@
-"""Domain packs: what a domain's data *means* (ROADMAP D11). The core knows formats and structure only.
+"""Domain packs: what a domain's data *means*. The core knows formats and structure only.
 
 A pack is optional. It brings:
 

@@ -1,4 +1,4 @@
-"""Grade a proposal against an evaluation case, and calibrate confidences (ROADMAP phase 9).
+"""Grade a proposal against an evaluation case, and calibrate confidences.
 
 A field is graded by its output, not by its column name: the proposal's columns and transforms
 are run on every source row and compared with the correct values. So a column that holds the

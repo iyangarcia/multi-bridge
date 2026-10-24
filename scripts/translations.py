@@ -1,4 +1,4 @@
-"""Measure the two first translations (ROADMAP phases 7 and 8) and write docs/TRANSLATIONS.md.
+"""Measure the two first translations and write docs/TRANSLATIONS.md.
 
     .venv/Scripts/python scripts/translations.py                 # rules only
     .venv/Scripts/python scripts/translations.py rules qwen3:8b  # and the local model (Ollama must run)

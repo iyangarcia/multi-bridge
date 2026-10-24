@@ -3,7 +3,7 @@
 An output *item* is flat: {target path: value}. Two kinds of keys are special:
 
     "pedido.lineas[]"   a repeated group: a list of sub-items, each {target path: value}
-    EXTRAS              custom source fields carried through (ROADMAP D14): {column: value}
+    EXTRAS              custom source fields carried through: {column: value}
 
 `nest(item, expected)` turns an item into a nested record, the JSON view of the output (and
 what the web app previews). Writers start from items, so each format decides its own shape.

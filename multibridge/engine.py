@@ -12,7 +12,7 @@ Cardinality (output.py has the item shape):
                                   across those rows, fields inside it give one entry per row
     one row -> several entries    a target that takes a list (example ["a", "b"]), or a template
                                   with several parts per item (a standard message writer)
-Custom fields (ROADMAP D14): the recipe's "extras" say which unmatched source columns are carried
+Custom fields: the recipe's "extras" say which unmatched source columns are carried
 through (copied as they are into the item's extras) and which were dropped, by whom.
 
 Transforms (hackathon list + format conversions):

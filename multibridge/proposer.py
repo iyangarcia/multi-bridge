@@ -12,7 +12,7 @@ summaries, harmless categories (COMPLIANCE C4, C6). Its reply is constrained by 
 listing the real columns, then checked again here: no invented columns, no column used twice,
 no translations outside the allowed values, no required field left as "no_data" (C7).
 
-Two passes (ROADMAP D6): first with thinking off; then the doubtful fields again with thinking on.
+Two passes: first with thinking off; then the doubtful fields again with thinking on.
 """
 
 from __future__ import annotations

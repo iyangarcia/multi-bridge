@@ -127,7 +127,7 @@ if (IDIOMA === "en") {
 // ---------- API local ----------
 // En la demo de GitHub Pages no hay servidor: el mismo Python corre en el navegador (js/navegador.js).
 const MODO_NAVEGADOR = false;   // scripts/build_pages.py lo cambia a true al construir la demo
-const REPOSITORIO = "https://github.com/iyangarcia/multibridge-mapper";
+const REPOSITORIO = "https://github.com/iyangarcia/multi-bridge";
 
 let trabajador = null, siguienteId = 0;
 const pendientes = new Map();

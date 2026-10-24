@@ -1,4 +1,4 @@
-"""Format plug-ins: one per data format, never one per pair of formats (ROADMAP D13).
+"""Format plug-ins: one per data format, never one per pair of formats.
 
 A plug-in knows a format's *structure*, nothing about what the data means (that is a domain pack):
 

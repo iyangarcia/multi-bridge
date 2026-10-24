@@ -4,7 +4,7 @@ For every target field it scores every source column on concept evidence from th
 destination's domain pack (standard position, name, description, values), role (the record's
 subject vs someone else), type and unit; assigns greedily one-to-one; and works out the
 transforms. The pack adds its domain's special cases through hooks (packs/__init__.py).
-With no pack, names are the evidence. The local Qwen proposer (docs/ROADMAP.md, phase 2)
+With no pack, names are the evidence. The local Qwen proposer (proposer.py)
 produces the same recipe shape.
 
 Scores are hand-weighted rules, NOT probabilities (recipe.CONFIDENCE_KIND).
