@@ -1,9 +1,18 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/media/logo-dark.png">
+    <img src="web/img/logo.png" alt="Multi Bridge" width="360">
+  </picture>
+</p>
+
 # Multi Bridge — a data translator from any format to any format
 
 [![tests](https://github.com/iyangarcia/multi-bridge/actions/workflows/tests.yml/badge.svg)](https://github.com/iyangarcia/multi-bridge/actions/workflows/tests.yml)
 
 > Show it one example of how you want your data. It maps the rest, a human approves, and a
 > deterministic engine does the transformation.
+
+![A messy hospital Excel export becomes a FHIR Bundle: the proposal, the review and the approval](docs/media/demo.gif)
 
 **[Try the live demo](https://iyangarcia.github.io/multi-bridge/)**: no install needed. The same Python
 runs inside your browser (Pyodide), so your files never leave your computer. The demo uses the rules
