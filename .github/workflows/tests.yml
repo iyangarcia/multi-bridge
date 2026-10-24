@@ -14,18 +14,18 @@ concurrency:                # a newer push cancels the run still going for the s
 jobs:
   pytest:
     name: Python ${{ matrix.python }} · ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}   # ubuntu pinned: "latest" moves to Ubuntu 26 from 2026-10-19
     timeout-minutes: 15
     strategy:
       fail-fast: false      # one failing combination doesn't stop the others
       matrix:
         include:
-          - { os: ubuntu-latest, python: "3.10" }    # the oldest version pyproject.toml allows
-          - { os: ubuntu-latest, python: "3.13" }
+          - { os: ubuntu-24.04, python: "3.10" }    # the oldest version pyproject.toml allows
+          - { os: ubuntu-24.04, python: "3.13" }
           - { os: windows-latest, python: "3.13" }   # where the project is developed
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: pip

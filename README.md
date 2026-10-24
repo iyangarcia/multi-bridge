@@ -1,5 +1,7 @@
 # Multi Bridge — a data translator from any format to any format
 
+[![tests](https://github.com/iyangarcia/multibridge-mapper/actions/workflows/tests.yml/badge.svg)](https://github.com/iyangarcia/multibridge-mapper/actions/workflows/tests.yml)
+
 > Show it one example of how you want your data. It maps the rest, a human approves, and a
 > deterministic engine does the transformation.
 

@@ -642,8 +642,9 @@ The user: this is a **portfolio project, not for a hospital**, and nothing paid.
       request, on Ubuntu with Python 3.10 (the oldest `pyproject.toml` allows) and 3.13, and on Windows 3.13.
       No Ollama needed (fake model). Rehearsed locally: a clean copy without ignored files, fresh venv,
       `pip install -e ".[dev]"`, 298 passed. `.gitattributes` keeps test data byte-exact (git must not
-      turn the CRLF / lone CR line breaks of the examples into LF). The README badge needs the GitHub
-      user name (not added yet).
+      turn the CRLF / lone CR line breaks of the examples into LF). **First run on GitHub 2026-10-24:
+      3/3 green, 1 min 5 s.** Then: actions bumped to checkout@v5 / setup-python@v6 (Node 24; v4/v5 warned
+      about Node 20), Ubuntu pinned to 24.04 (`ubuntu-latest` moves to Ubuntu 26), badge in the README.
 - [ ] **Live demo on GitHub Pages, no server:** the same `web/` with the Python running in the visitor's
       browser (Pyodide; the core is standard library + openpyxl). `api()` in `web/js` calls the API's
       functions in Pyodide instead of over HTTP; recipes and saved formats live in the browser; the
