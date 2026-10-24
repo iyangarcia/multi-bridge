@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "multibridge"
 version = "0.1.0"
-description = "Universal healthcare data mapper: one engine for HL7 v2, FHIR, CSV and messy Excel."
+description = "Convert data between formats (CSV, Excel, JSON, XML, HL7 v2, FHIR) from one example of the output, with human review."
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["openpyxl>=3.1"]
