@@ -513,6 +513,35 @@ class App:
                            "content_b64": base64.b64encode(data).decode("ascii")}}
 
 
+def route(app: App, method: str, url: str, body=None):
+    """One API call, without HTTP: the local server and the in-browser demo (multibridge.browser)
+    both answer through here, so the two can't drift apart. Raises ApiError."""
+    path, query = urlparse(url).path, parse_qs(urlparse(url).query)
+    if method == "GET":
+        routes = {"/api/health": app.health, "/api/destinations": app.list_destinations,
+                  "/api/formats": app.list_formats,
+                  "/api/examples": app.list_examples, "/api/recipes": app.list_recipes}
+        if path == "/api/expected":
+            return app.get_expected((query.get("destination") or [None])[0])
+        if path == "/api/destination/fields":
+            return app.destination_fields((query.get("destination") or [None])[0])
+        if path in routes:
+            return routes[path]()
+        if path.startswith("/api/recipes/"):
+            return app.get_recipe(unquote(path[len("/api/recipes/"):]))
+        raise ApiError(404, "no existe")
+    routes = {"/api/upload": app.upload, "/api/propose": app.do_propose, "/api/field": app.field,
+              "/api/approve": app.approve, "/api/run": app.do_run,
+              "/api/destination": app.upload_destination, "/api/fields": app.source_fields,
+              "/api/destination/fields": app.fields_destination,
+              "/api/destination/delete": app.delete_destination}
+    if method != "POST" or path not in routes:
+        raise ApiError(404, "no existe")
+    if not isinstance(body, dict):
+        raise ApiError(400, "se espera un objeto JSON")
+    return routes[path](body)
+
+
 class Handler(BaseHTTPRequestHandler):
     app: App   # set by make_server
     server_version = "MultiBridge"
@@ -558,31 +587,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def _get(self):
         path = urlparse(self.path).path
-        query = parse_qs(urlparse(self.path).query)
-        routes = {"/api/health": self.app.health, "/api/destinations": self.app.list_destinations,
-                  "/api/formats": self.app.list_formats,
-                  "/api/examples": self.app.list_examples, "/api/recipes": self.app.list_recipes}
-        if path == "/api/expected":
-            return self._send(200, self.app.get_expected((query.get("destination") or [None])[0]))
-        if path == "/api/destination/fields":
-            return self._send(200, self.app.destination_fields((query.get("destination") or [None])[0]))
-        if path in routes:
-            return self._send(200, routes[path]())
-        if path.startswith("/api/recipes/"):
-            return self._send(200, self.app.get_recipe(unquote(path[len("/api/recipes/"):])))
         if path.startswith("/api/"):
-            raise ApiError(404, "no existe")
+            return self._send(200, route(self.app, "GET", self.path))
         return self._static(path)
 
     def _post(self):
-        path = urlparse(self.path).path
-        routes = {"/api/upload": self.app.upload, "/api/propose": self.app.do_propose, "/api/field": self.app.field,
-                  "/api/approve": self.app.approve, "/api/run": self.app.do_run,
-                  "/api/destination": self.app.upload_destination, "/api/fields": self.app.source_fields,
-                  "/api/destination/fields": self.app.fields_destination,
-                  "/api/destination/delete": self.app.delete_destination}
-        if path not in routes:
-            raise ApiError(404, "no existe")
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
             raise ApiError(413, "archivo demasiado grande")
@@ -592,9 +601,7 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
             raise ApiError(400, "JSON no válido") from None
-        if not isinstance(body, dict):
-            raise ApiError(400, "se espera un objeto JSON")
-        return self._send(200, routes[path](body))
+        return self._send(200, route(self.app, "POST", self.path, body))
 
     def _static(self, path: str):
         rel = unquote(path).lstrip("/") or "index.html"

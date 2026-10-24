@@ -5,6 +5,10 @@
 > Show it one example of how you want your data. It maps the rest, a human approves, and a
 > deterministic engine does the transformation.
 
+**[Try the live demo](https://iyangarcia.github.io/multibridge-mapper/)**: no install needed. The same Python
+runs inside your browser (Pyodide), so your files never leave your computer. The demo uses the rules
+only. For the local AI, install it on your machine (see [Try it](#try-it)).
+
 Started at **Hackathon TalentUO 2026** (Reto 5, Pragmatech AI Solutions, Grupo 5). The challenge was to connect one clinical
 application to three hospitals that speak HL7 v2.3, HL7 FHIR and Excel, **without writing one
 integration per hospital**.
@@ -86,6 +90,24 @@ Your team's hackathon site, now wired to the real pipeline:
 
 **"Lo que ve la IA"** shows, next to your real values, exactly what the model receives. The server
 listens on 127.0.0.1 only, and uploads stay in memory.
+
+### The browser demo (GitHub Pages)
+
+```bash
+python scripts/build_pages.py              # -> site/
+python -m http.server -d site 8000         # then open http://localhost:8000
+```
+
+The same `web/` runs with no server. A web worker (`web/js/navegador.js`) loads Pyodide and answers
+each API call through the same `api.route` as `multibridge serve` (`multibridge/browser.py`).
+Here is what changes:
+- rules only;
+- recipes and saved field lists are kept in the visitor's browser (IndexedDB);
+- the demo ships no recipes.
+
+The build bundles openpyxl and precompiles the Python for Pyodide's 3.13. The first load takes about
+5 seconds; after that, a proposal is instant. `.github/workflows/pages.yml` runs the tests, builds,
+and publishes on every push to `master`. One-time setup: Settings → Pages → Source: **GitHub Actions**.
 
 ### Any destination: show an example of the output
 
@@ -204,6 +226,7 @@ DiabA
 | `multibridge/recipe.py` | draft → approved recipe, hash, who changed what, reuse by structure |
 | `multibridge/engine.py` | applies a recipe row by row with fixed transforms, validates, groups rows into items, carries extras; `Result.write()` gives the destination file |
 | `multibridge/api.py` + `web/` | local API (loopback only) and the review web app, adapted from the hackathon site (Grupo 5), client branding removed |
+| `multibridge/browser.py` + `scripts/build_pages.py` | the API inside the browser (Pyodide) and the build of the GitHub Pages demo (`site/`) |
 | `expected/` | `cdss_paciente.example.json` (the hackathon's `destino_expected.json`), `paciente_resumen_fhir.example.json` (the phase 7 FHIR Bundle), each with its `.rules.json`; saved field lists (`*.fields.json`) |
 | `examples/` | synthetic data for the 3 hospitals plus messy variants (`build_examples.py` regenerates them) |
 | `tests/` | per area, plus the 3-hospital golden test and the Excel → FHIR golden Bundles (`tests/golden/`). The AI tests use a fake model, so no Ollama is needed |
@@ -265,4 +288,5 @@ See [docs/ROADMAP.md](docs/ROADMAP.md): current state, decisions, and the phases
 7. first translation: messy Excel → FHIR
 8. second translation: CSV → nested XML or JSON
 9. evaluation and calibration
-10. deployment as a portfolio project: CI (done), a GitHub Pages demo running the Python in the browser
+10. deployment as a portfolio project: CI and a GitHub Pages demo running the Python in the browser
+    (both done), then Spanish/English for the app and the docs

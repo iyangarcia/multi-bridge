@@ -645,15 +645,55 @@ The user: this is a **portfolio project, not for a hospital**, and nothing paid.
       turn the CRLF / lone CR line breaks of the examples into LF). **First run on GitHub 2026-10-24:
       3/3 green, 1 min 5 s.** Then: actions bumped to checkout@v5 / setup-python@v6 (Node 24; v4/v5 warned
       about Node 20), Ubuntu pinned to 24.04 (`ubuntu-latest` moves to Ubuntu 26), badge in the README.
-- [ ] **Live demo on GitHub Pages, no server:** the same `web/` with the Python running in the visitor's
-      browser (Pyodide; the core is standard library + openpyxl). `api()` in `web/js` calls the API's
-      functions in Pyodide instead of over HTTP; recipes and saved formats live in the browser; the
-      synthetic examples are bundled. Rules only. Visitors' files never leave their computer.
-- [ ] A second workflow that builds and publishes the Pages demo on every push to `main`.
+- [x] **Live demo on GitHub Pages, no server** (2026-10-24). The same `web/` runs with the Python in
+      the visitor's browser, through Pyodide 0.29.5 (Python 3.13) from jsdelivr.
+      - Routing moved into `api.route(app, method, url, body)`. Both `multibridge serve` and
+        `multibridge/browser.py` answer through it, so they can't drift apart.
+      - `web/js/navegador.js` is a web worker that loads Pyodide and unpacks the bundle.
+        `recipes/` and `expected/` are IDBFS mounts, synced after approve and after saving or deleting
+        a field list. The bundled example destinations are refreshed on every load.
+      - `api()` in `comun.js` sends calls to the worker when `MODO_NAVEGADOR` is set. The build sets
+        it, and a notice under the header says what the demo is.
+      - Rules only: AI options are disabled with a reason, and the API answers 503.
+      - `scripts/build_pages.py` → `site/` (gitignored). The bundle holds the package, openpyxl and
+        et_xmlfile unpacked from their wheels (nothing comes from PyPI), the examples and the example
+        destinations. It holds no recipes and no saved lists. The `.pyc` files are precompiled
+        (unchecked-hash) when built on 3.13, and the zip is named by its content hash.
+      - Checked in the browser pane: HUCA proposal; Excel in and Excel out; a saved field list;
+        a recipe that survives a reload; base64 upload; the phone layout.
+      - First load went from 11 s to about 5 s once micropip and in-browser compiling were removed.
+        After that, upload → propose → approve takes 0.1 s.
+      - Limit: destinations kept only in memory (uploaded examples, unsaved field lists) last only
+        for that page.
+      - Tests: `tests/test_pages.py`.
+- [x] `.github/workflows/pages.yml`: tests, build, publish on every push to `master`. Actions:
+      configure-pages@v6, upload-pages-artifact@v5, deploy-pages@v5 (Node 24). The user must set
+      Settings → Pages → Source: GitHub Actions once. Not run on GitHub yet.
 - [ ] **AI:** the main way stays "clone + `multibridge serve` + Ollama". On Pages, an *experimental*
       "connect your own Ollama" (`OLLAMA_ORIGINS=https://<user>.github.io ollama serve`; the browser
       may ask for local-network permission); `ai/ollama.py` needs a `fetch` path under Pyodide.
 - [ ] README as a landing page: demo link, local install for the AI, the measured numbers, a GIF.
+- [x] **Languages (decided with the user 2026-10-24; "level 1" of three options discussed):**
+      - *Docs:* English only, plain Markdown in `docs/` (GitHub has no built-in translation; readers
+        can use the browser's). The user says most current docs are not what they want: **don't
+        touch them** until they say what they want. No MkDocs, no `README.es.md` for now.
+      - *Web app:* ES/EN button in the header (remembered per browser; default = browser language).
+        Spanish stays the source text everywhere. `web/i18n/en.json` maps Spanish → English, with no
+        invented keys. It has three parts:
+        - `textos`: exact strings;
+        - `html`: whole paragraphs marked `data-i18n-html`;
+        - `patrones`: templates where `{n}` is translated again and `{n:n}` matches numbers only.
+      - `comun.js` translates the page as it changes (MutationObserver), including whatever the API
+        sends, so the Python core and the page code stay as they were.
+      - Never translated: the person's data (`<code>`, `<pre>`, `translate="no"`, and `marcarDatos`
+        for column labels, sample values and file names). A missing entry stays in Spanish.
+      - `tests/test_i18n.py` checks:
+        - the static pages are covered;
+        - every message the API returns for all examples × destinations (rules) has a translation;
+        - patterns don't touch names.
+      - In the browser console, `textosSinTraducir()` lists what a page still shows in Spanish.
+      - Not covered by the test: strings only the AI path produces (qwen) and errors that are hard to
+        trigger. Those stay in Spanish until added.
 - Not for now (a real organisation would need them): corporate login, propose/approve roles, encryption at
   rest, audit log (C14), compliance paperwork (C16–C19), Jev (D9).
 
@@ -674,6 +714,48 @@ The user: this is a **portfolio project, not for a hospital**, and nothing paid.
 - Add the C1 rule ("never put real patient data in this repo") to `CLAUDE.md`. That's the user's file.
 
 ## 8. Session log (newest first, append only)
+
+- **2026-10-24 (languages):** the user chose "level 1" for the web app and English-only docs, and
+  said most current docs aren't what they want, so they were left untouched.
+  - Added an ES/EN button and `web/i18n/en.json` (≈460 texts, 7 paragraphs, ≈170 patterns).
+  - Added a translator in `comun.js` that also covers what the API says, while leaving the person's
+    data alone. Added `tests/test_i18n.py`.
+  - The Pages build also stamps the dictionary URL.
+  - Checked in the browser pane: all three pages in English, including every example × destination
+    on the translate page and a full approval. Switching back to Spanish works.
+  - 309 tests pass. Test data and preferences in the pane were deleted.
+
+- **2026-10-24 (web app, more feedback):**
+  - The start page header now reads "Instalación de ejemplo · Reto 5": what Multi Bridge would look
+    like installed locally in one hospital, with invented data.
+  - "Formatos de destino" has a main button, "+ Todos los campos de un archivo…". Each column becomes
+    a field with its name and type, and the name is suggested from the file. The visitor picks the
+    output format and saves.
+  - In "Traducir datos", the format buttons now explain that you receive every source column in that
+    format, and that you can drop some and save the list.
+  - Checked in the browser pane. Test data deleted.
+
+- **2026-10-24 (web app, user feedback on the demo):**
+  - Start page: a "Qué estás viendo" card. It explains the challenge, that this is what a local
+    installation in one hospital would look like, and how a hospital gets connected.
+  - A loading bar in "Tus conexiones" while it loads, and a thin loading bar at the top of every page
+    while the API works.
+  - The review progress bar moved to the top of the sticky counters.
+  - Messages (toasts) slide down from the top instead of up from the bottom.
+  - "Revisado por" and "Aprobar y convertir" moved to a block at the bottom of the review.
+  - The Pages build stamps `?v=<hash>` on the CSS, the JS and the worker. A stale cached script with a
+    new page broke the translate page in testing, and Pages caches files for 10 minutes.
+  - Checked in the browser pane. Test data deleted.
+
+- **2026-10-24 (phase 10, Pages demo):** built the browser demo (Pyodide worker, `api.route`,
+  `multibridge/browser.py`, `scripts/build_pages.py`) and the Pages workflow. Checked in the browser
+  pane; 303 tests pass. The browser test data lived only in the pane's IndexedDB, and it was deleted.
+  During the session the user added `recipes/.*` to `.gitignore`, and `recipes/` left the working
+  folder. That was not done here. Next: translations (es/en).
+
+- **2026-10-24 (phase 10, decisions):** the user confirmed GitHub Pages (rules only) + local install
+  for the AI. Web app Spanish is fine, docs probably English, ideally both easy to translate; much
+  more documentation later. Language plan added to phase 10. Nothing implemented yet.
 
 - **2026-10-24 (phase 10 starts):** the user: a portfolio project, free hosting, GitHub Pages without AI,
   AI by cloning or by the visitor's own Ollama. Phase 10 rewritten accordingly. CI added

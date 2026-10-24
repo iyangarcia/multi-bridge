@@ -95,12 +95,19 @@ async function camposDe(subida) {
   est.editor.campos = r.fields.map(f => ({ name: f.name, type: f.type, required: false, multiple: f.multiple,
     from: null, incluir: true }));
   pintarEditor();
-  toast(`${r.fields.length} campos tomados de ${subida.name}: cambia lo que quieras y guarda`);
+  toast(`${r.fields.length} campos tomados de ${subida.name}: elige el formato de salida, cambia lo que quieras y guarda`);
 }
 
 async function desdeEjemplo(nombre) {
   if (!nombre) return;
   try { await camposDe(await api("upload", { example: nombre })); } catch (e) { toast(e.message); }
+}
+
+// «Todos los campos de un archivo»: editor nuevo con cada columna del archivo como campo
+async function todosLosCampos(file) {
+  crear();
+  $("e-nombre").value = (file.name.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "mi_formato").slice(0, 40);
+  await desdeArchivo(file);
 }
 
 async function desdeArchivo(file) {
@@ -161,6 +168,7 @@ async function iniciar() {
   $("e-guardar").onclick = guardar;
   $("e-desde-ejemplo").onchange = e => desdeEjemplo(e.target.value);
   $("e-desde-archivo").addEventListener("change", e => e.target.files[0] && desdeArchivo(e.target.files[0]));
+  $("file-todos").addEventListener("change", e => { if (e.target.files[0]) todosLosCampos(e.target.files[0]); e.target.value = ""; });
   $("file-ejemplo").addEventListener("change", e => e.target.files.length && subirEjemplo(e.target.files));
   try {
     await pintarBotonesFormato($("e-formatos"), f => { est.editor.formato = f; marcarFormato($("e-formatos"), f); });

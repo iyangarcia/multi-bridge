@@ -7,8 +7,182 @@ const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;"
 const formatear = v => (v === null || v === undefined || v === "") ? "—"
   : Array.isArray(v) ? v.map(formatear).join(" · ") : typeof v === "object" ? JSON.stringify(v) : String(v);
 
+// ---------- Idioma: español o inglés ----------
+// Todo se escribe en español; en inglés, i18n/en.json traduce la página al vuelo (también lo que llega
+// de la API). Sin traducción, un texto se queda en español. Nunca se traducen los datos de la persona:
+// <code>, <pre>, translate="no" y los textos marcados con marcarDatos (columnas, valores, archivos).
+const IDIOMA = (() => {
+  try { const g = localStorage.getItem("multibridge.idioma"); if (g === "es" || g === "en") return g; } catch { /* */ }
+  return /^es\b/i.test(navigator.language || "es") ? "es" : "en";
+})();
+const LOCALE = IDIOMA === "en" ? "en-GB" : "es-ES";
+const DATOS = new Set();
+const marcarDatos = valores => valores.forEach(v => { if (v !== null && v !== undefined && v !== "") DATOS.add(String(v).trim()); });
+const ATRIBUTOS = ["title", "placeholder", "aria-label", "alt", "label"];
+let DICCIONARIO = null;
+const TRADUCIDOS = new Set();   // lo ya puesto en inglés (para textosSinTraducir)
+
+const normal = s => s.replace(/\s+/g, " ").trim();
+
+// patrones: ["Hoja '{1}' está oculta", "Sheet '{1}' is hidden"]: cada {n} se traduce a su vez si se puede;
+// {n:n} solo casa con un número (así «{1:n} de {2:n}» no toca «Hospital de León»)
+function compilar(d) {
+  d.reglas = (d.patrones || []).map(([es, en]) => ({
+    re: new RegExp("^" + es.split(/(\{\d(?::n)?\})/).map(p => /^\{\d:n\}$/.test(p) ? "(\\d+(?:[.,]\\d+)?)"
+      : /^\{\d\}$/.test(p) ? "(.+?)" : p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("") + "$"),
+    orden: [...es.matchAll(/\{(\d)(?::n)?\}/g)].map(m => m[1]), en }));
+  return d;
+}
+
+function traducirTexto(texto, nivel = 0) {
+  const t = normal(texto);
+  if (!t || DATOS.has(t)) return t;
+  if (DICCIONARIO.textos[t] !== undefined) return DICCIONARIO.textos[t];
+  if (nivel > 3) return t;
+  for (const r of DICCIONARIO.reglas) {
+    const m = t.match(r.re);
+    if (!m) continue;
+    const partes = {};
+    r.orden.forEach((n, i) => { partes[n] = traducirTexto(m[i + 1], nivel + 1); });
+    return r.en.replace(/\{(\d)\}/g, (_, n) => partes[n]);
+  }
+  for (const sep of [" · ", "; ", ", ", " + "]) {   // listas de mensajes: cada uno por su lado
+    if (!t.includes(sep)) continue;
+    const trozos = t.split(sep).map(x => traducirTexto(x, nivel + 1));
+    if (trozos.join(sep) !== t) return trozos.join(sep);
+  }
+  return t;
+}
+
+// Conserva los espacios de alrededor (en el HTML separan palabras de los elementos vecinos)
+function traducir(texto) {
+  const [, antes, medio, despues] = texto.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  const nuevo = traducirTexto(medio);
+  if (nuevo === normal(medio)) return texto;
+  TRADUCIDOS.add(nuevo);
+  return antes + nuevo + despues;
+}
+
+const saltar = el => el.closest('[translate="no"], code, pre, script, style, textarea');
+
+function traducirAtributos(el) {
+  ATRIBUTOS.forEach(a => {
+    const v = el.getAttribute(a);
+    if (v) { const t = traducir(v); if (t !== v) el.setAttribute(a, t); }
+  });
+}
+
+function traducirNodo(n) {
+  if (n.nodeType === Node.TEXT_NODE) {
+    if (n.parentElement && !saltar(n.parentElement)) { const t = traducir(n.nodeValue); if (t !== n.nodeValue) n.nodeValue = t; }
+    return;
+  }
+  if (n.nodeType !== Node.ELEMENT_NODE || saltar(n)) return;
+  if (n.hasAttribute("data-i18n-html")) {   // un párrafo con <b> o enlaces se traduce entero
+    const en = DICCIONARIO.html[normal(n.innerHTML)];
+    if (en !== undefined) { n.innerHTML = en; n.childNodes.forEach(h => TRADUCIDOS.add(normal(h.textContent))); return; }
+  }
+  traducirAtributos(n);
+  n.childNodes.forEach(traducirNodo);
+}
+
+// Ayuda para completar en.json: lo que se ve en esta página y sigue en español
+function textosSinTraducir() {
+  const fuera = new Set(), paso = n => {
+    if (n.nodeType === Node.TEXT_NODE) { const t = normal(n.nodeValue); if (/[a-záéíóúñ]{3}/i.test(t) && t === traducirTexto(t) && !DATOS.has(t) && !TRADUCIDOS.has(t)) fuera.add(t); }
+    else if (n.nodeType === Node.ELEMENT_NODE && !saltar(n) && n.getClientRects().length) n.childNodes.forEach(paso);
+  };
+  paso(document.body);
+  return [...fuera];
+}
+
+function botonIdioma() {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "boton-idioma";
+  b.setAttribute("translate", "no");
+  b.textContent = IDIOMA === "en" ? "ES" : "EN";
+  b.title = IDIOMA === "en" ? "Ver en español" : "View in English";
+  b.onclick = () => { try { localStorage.setItem("multibridge.idioma", IDIOMA === "en" ? "es" : "en"); } catch { /* */ } location.reload(); };
+  document.querySelector(".cabecera nav").appendChild(b);
+}
+botonIdioma();
+
+if (IDIOMA === "en") {
+  document.documentElement.lang = "en";
+  document.documentElement.classList.add("traduciendo");   // sin parpadeo en español mientras llega el diccionario
+  fetch("i18n/en.json").then(r => r.json()).then(d => {
+    DICCIONARIO = compilar(d);
+    document.title = traducir(document.title);
+    traducirNodo(document.body);
+    new MutationObserver(cambios => cambios.forEach(c => {
+      if (c.type === "attributes") { if (!saltar(c.target)) traducirAtributos(c.target); }
+      else if (c.type === "characterData") traducirNodo(c.target);
+      else c.addedNodes.forEach(traducirNodo);
+    })).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATRIBUTOS });
+  }).catch(() => { /* sin diccionario: la página sigue en español */ })
+    .finally(() => document.documentElement.classList.remove("traduciendo"));
+}
+
 // ---------- API local ----------
+// En la demo de GitHub Pages no hay servidor: el mismo Python corre en el navegador (js/navegador.js).
+const MODO_NAVEGADOR = false;   // scripts/build_pages.py lo cambia a true al construir la demo
+const REPOSITORIO = "https://github.com/iyangarcia/multibridge-mapper";
+
+let trabajador = null, siguienteId = 0;
+const pendientes = new Map();
+
+function apiNavegador(ruta, cuerpo) {
+  if (!trabajador) {
+    trabajador = new Worker("js/navegador.js");
+    document.body.classList.add("cargando-python");
+    trabajador.onmessage = ({ data: { id, respuesta } }) => {
+      const p = pendientes.get(id);
+      pendientes.delete(id);
+      document.body.classList.remove("cargando-python");   // solo la primera vez tarda (unos segundos)
+      respuesta.status === 200 ? p.ok(respuesta.data) : p.mal(new Error(respuesta.error || `error ${respuesta.status}`));
+    };
+  }
+  return new Promise((ok, mal) => {
+    const id = ++siguienteId;
+    pendientes.set(id, { ok, mal });
+    trabajador.postMessage({ id, metodo: cuerpo === undefined ? "GET" : "POST", ruta, cuerpo });
+  });
+}
+
+function avisoDemo() {
+  const aviso = document.createElement("div");
+  aviso.className = "aviso-demo";
+  aviso.innerHTML = `<span class="aviso-carga">Cargando Python en tu navegador…</span>
+    <span data-i18n-html>Demo: todo se ejecuta en tu navegador y tus archivos no salen de tu equipo. Solo reglas;
+    para la IA local, <a href="${REPOSITORIO}#readme">instálalo en tu equipo</a>.</span>`;
+  document.querySelector(".cabecera").after(aviso);
+}
+if (MODO_NAVEGADOR) document.addEventListener("DOMContentLoaded", avisoDemo);
+
+// Barra de carga arriba del todo mientras haya llamadas en curso (solo si tardan algo)
+let enCurso = 0, temporizadorCarga;
+function barraCarga(cambio) {
+  let barra = document.querySelector(".barra-carga");
+  if (!barra) {
+    barra = document.createElement("div");
+    barra.className = "barra-carga";
+    barra.setAttribute("aria-hidden", "true");
+    document.body.prepend(barra);
+  }
+  enCurso += cambio;
+  clearTimeout(temporizadorCarga);
+  if (enCurso > 0) temporizadorCarga = setTimeout(() => barra.classList.add("visible"), 150);
+  else barra.classList.remove("visible");
+}
+
 async function api(ruta, cuerpo) {
+  barraCarga(+1);
+  try { return await llamarApi(ruta, cuerpo); } finally { barraCarga(-1); }
+}
+
+async function llamarApi(ruta, cuerpo) {
+  if (MODO_NAVEGADOR) return apiNavegador(ruta, cuerpo);
   const opciones = cuerpo === undefined ? {} : {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo)
   };

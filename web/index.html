@@ -27,18 +27,33 @@
       <div class="panel-id">
         <img src="img/logo.png" alt="Multi Bridge">
         <div>
-          <h1>Tu instalación</h1>
-          <div class="sub" id="p-sub">Funciona en este equipo · los datos no salen de aquí</div>
+          <h1>Instalación de ejemplo <span class="insignia-demo">Reto 5</span></h1>
+          <div class="sub" id="p-sub">Así se vería Multi Bridge instalado en local en un hospital · con datos inventados</div>
         </div>
       </div>
       <a class="boton" href="mapeador.html">+ Traducir datos</a>
     </section>
 
+    <section class="tarjeta-panel explicacion">
+      <h2>Qué estás viendo: una instalación de ejemplo</h2>
+      <ol>
+        <li data-i18n-html><b>El reto.</b> Una aplicación clínica tenía que recibir los datos de pacientes de tres hospitales
+          que los guardan de forma distinta (HL7 v2.3, FHIR y Excel), sin programar una integración para cada uno.</li>
+        <li data-i18n-html><b>Así se vería la instalación.</b> Multi Bridge se instala en local, en el equipo de un hospital concreto:
+          lee allí sus archivos y los datos de los pacientes no salen de su red. Este panel es lo que vería ese equipo:
+          sus conexiones con la aplicación y las recetas que ya ha aprobado. Aquí se ven juntos los tres hospitales del reto.</li>
+        <li data-i18n-html><b>Cómo se conecta un hospital.</b> Pulsa uno: Multi Bridge propone de qué dato sale cada campo, una persona
+          lo revisa y lo aprueba con su nombre, y esa receta se reutiliza sola la próxima vez que llegue un archivo igual.</li>
+      </ol>
+      <p class="pista">Todos los datos de ejemplo son inventados.</p>
+    </section>
+
     <section class="tarjeta-panel">
       <div class="tarjeta-panel-cab">
         <h2>Tus conexiones</h2>
-        <span class="sub" id="p-resumen"></span>
+        <span class="sub" id="p-resumen">Cargando las conexiones…</span>
       </div>
+      <div class="carga-seccion" id="p-cargando" role="progressbar" aria-label="Cargando las conexiones"></div>
       <div class="diagrama" id="diagrama" aria-label="Cómo viajan los datos">
         <svg class="cables" id="cables" aria-hidden="true"></svg>
         <div class="hospitales" id="p-hospitales"></div>

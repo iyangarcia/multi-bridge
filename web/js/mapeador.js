@@ -75,6 +75,7 @@ function pintarEjemplos(ejemplos) {
 
 async function cargarSubida(subida) {
   estado.subida = subida;
+  marcarDatos([subida.name, ...subida.columns.map(c => c.label), ...Object.values(subida.samples).flat()]);   // no se traducen
   $("nombre-origen").textContent = `${subida.name} · ${FORMATOS[subida.format] || subida.format} · ${subida.rows} registros · ${subida.columns.length} columnas`;
   $("resultado").classList.add("oculto");
   pintarNotas();
@@ -129,7 +130,7 @@ function pintarNotas() {
 function pintarAvisoReceta() {
   const r = estado.propuesta && estado.propuesta.reusable;
   $("aviso-receta").classList.toggle("oculto", !r);
-  if (r) $("aviso-texto").innerHTML = `Ya conozco este formato: la receta <b>${esc(r.name)}</b> la aprobó ${esc(r.approved_by)} (${new Date(r.at).toLocaleString("es-ES")}). Se puede aplicar sin volver a proponer.`;
+  if (r) $("aviso-texto").innerHTML = `Ya conozco este formato: la receta <b>${esc(r.name)}</b> la aprobó ${esc(r.approved_by)} (${new Date(r.at).toLocaleString(LOCALE)}). Se puede aplicar sin volver a proponer.`;
 }
 
 async function reutilizar() {
@@ -153,9 +154,9 @@ function pintarIA() {
   $("icono-ojo").innerHTML = ICONO.ojo(16);
   const filas = estado.subida.ai_view.columns.map(c => {
     const real = estado.subida.samples[c.column] || [];
-    return `<tr><td><b>${esc(c.column)}</b><small>${esc(c.description || "")}</small></td>
-      <td class="ia">${esc(vistaIA(c))}</td>
-      <td class="real">${esc(real.map(formatear).join(" · ") || "—")}</td></tr>`;
+    return `<tr><td><b translate="no">${esc(c.column)}</b><small>${esc(c.description || "")}</small></td>
+      <td class="ia"${c.masked_samples ? ' translate="no"' : ""}>${esc(vistaIA(c))}</td>
+      <td class="real" translate="no">${esc(real.map(formatear).join(" · ") || "—")}</td></tr>`;
   }).join("");
   $("tabla-ia").innerHTML = `<table class="tabla"><thead><tr><th>Columna</th><th>Lo que ve la IA</th><th>Tus datos (solo aquí)</th></tr></thead><tbody>${filas}</tbody></table>`;
 }
@@ -251,7 +252,7 @@ function render() {
   if (!$("revisor").value.trim()) bloqueo.push("escribe quién revisa");
   $("btn-confirmar").disabled = bloqueo.length > 0;
   $("btn-confirmar").title = bloqueo.length ? "Para aprobar: " + bloqueo.join(", ") : "";
-  $("estado").textContent = bloqueo.length ? "Para aprobar: " + bloqueo.join(", ") + "."
+  $("estado").textContent = $("estado-aprobar").textContent = bloqueo.length ? "Para aprobar: " + bloqueo.join(", ") + "."
     : "Todo revisado. Al aprobar se guarda la receta con tu nombre y se convierten los datos.";
 
   renderRevisados(revisados);
@@ -470,7 +471,7 @@ async function confirmar() {
 function mostrarResultado(r, como) {
   estado.ultimo = r;
   const rep = r.report, rec = r.recipe;
-  $("resultado-sub").textContent = `Receta ${rec.recipe} · ${como} por ${rec.approval.by} · ${new Date(rec.approval.at).toLocaleString("es-ES")} · huella ${rec.approval.sha256.slice(0, 12)}…`;
+  $("resultado-sub").textContent = `Receta ${rec.recipe} · ${como} por ${rec.approval.by} · ${new Date(rec.approval.at).toLocaleString(LOCALE)} · huella ${rec.approval.sha256.slice(0, 12)}…`;
   const cambiados = Object.values(rec.fields).filter(f => f.changed_by).length;
   $("resumen").innerHTML = `
     <span><b>${rep.accepted}</b> de ${rep.rows} registros convertidos</span>
@@ -657,7 +658,8 @@ async function iniciar() {
     for (const op of opciones) {
       if (op.value !== "rules" && !salud.ollama[op.value]) { op.disabled = true; op.textContent += " — no disponible"; }
     }
-    $("estado-ia").textContent = Object.values(salud.ollama).some(Boolean) ? "La IA corre en este equipo (Ollama, 127.0.0.1)"
+    $("estado-ia").textContent = salud.browser ? "Demo en el navegador: solo reglas (la IA necesita la instalación local)"
+      : Object.values(salud.ollama).some(Boolean) ? "La IA corre en este equipo (Ollama, 127.0.0.1)"
       : "Ollama no está en marcha: solo reglas";
     const q = new URLSearchParams(location.search);
     if (q.has("ejemplo")) cargarEjemplo(q.get("ejemplo"));

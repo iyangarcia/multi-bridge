@@ -28,12 +28,6 @@
         <h1>Traducir datos</h1>
         <div class="estado" id="estado">Elige los datos de origen y el destino: un ejemplo de cómo los quieres, o solo el formato.</div>
       </div>
-      <div class="confirmar-grupo">
-        <label class="revisor">Revisado por
-          <input type="text" id="revisor" placeholder="Tu nombre" autocomplete="name">
-        </label>
-        <button class="boton" id="btn-confirmar" disabled>Aprobar y convertir</button>
-      </div>
     </div>
 
     <!-- Marcador -->
@@ -91,10 +85,12 @@
           </label>
         </div>
         <div class="destino-directo">
-          <span class="pista">…o elige solo el formato, sin ejemplo:</span>
+          <span class="pista" data-i18n-html>…o elige solo el formato, sin ejemplo. Con la casilla marcada recibes <b>todas las columnas
+            del archivo de origen</b> en ese formato, con su nombre y su tipo; después puedes quitar las que no quieras
+            y guardarlo para la próxima vez:</span>
           <div class="formatos-directos" id="formatos-directos"></div>
           <label class="casilla" title="Cada columna del origen pasa a ser un campo del destino, con su nombre y su tipo">
-            <input type="checkbox" id="todos-campos" checked> Recibir todos los campos del archivo
+            <input type="checkbox" id="todos-campos" checked> Recibir todos los campos del archivo de origen
           </label>
         </div>
         <div class="proponente">
@@ -189,6 +185,20 @@
         <p class="pista">Ninguno se pierde sin que lo decidas: marca «Llevar» para que viaje como campo extra (una extensión, una columna o un elemento más); los demás se descartan y queda anotado con tu nombre.</p>
         <div id="lista-sobrantes"></div>
       </details>
+
+      <!-- Al terminar de revisar: quién revisa y aprobar -->
+      <section class="aprobar" id="sec-aprobar">
+        <div>
+          <h2>Aprobar la receta</h2>
+          <div class="estado" id="estado-aprobar"></div>
+        </div>
+        <div class="confirmar-grupo">
+          <label class="revisor">Revisado por
+            <input type="text" id="revisor" placeholder="Tu nombre" autocomplete="name">
+          </label>
+          <button class="boton" id="btn-confirmar" disabled>Aprobar y convertir</button>
+        </div>
+      </section>
     </div>
 
     <section class="resultado oculto" id="resultado">

@@ -7,6 +7,7 @@ async function pintarInicio() {
   } catch (e) {
     toast("No se puede hablar con la API local: " + e.message);
   }
+  $("p-cargando")?.remove();
   const conectado = h => recetas.some(r => r.file === h.archivo);
 
   const n = HOSPITALES_DEMO.filter(conectado).length;
@@ -62,7 +63,7 @@ function pintarRecetas(recetas) {
     tr.querySelector("b").textContent = demo ? `${demo.nombre} (${demo.ciudad})` : r.file;
     tr.querySelector(".formato-insignia").textContent = FORMATOS[r.format] || r.format;
     tr.children[3].textContent = r.approved_by;
-    tr.children[4].textContent = new Date(r.at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" });
+    tr.children[4].textContent = new Date(r.at).toLocaleString(LOCALE, { dateStyle: "short", timeStyle: "short" });
     const dl = tr.querySelector("button");
     dl.setAttribute("aria-label", `Descargar la receta ${r.name}`);
     dl.onclick = async () => descargar(`receta_${r.name}.json`, JSON.stringify(await api(`recipes/${encodeURIComponent(r.name)}`), null, 2), "application/json");

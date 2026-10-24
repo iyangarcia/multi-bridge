@@ -7,3 +7,5 @@ dist/
 ~$*.xlsx
 CLAUDE.md
 out/
+site/
+recipes/.*

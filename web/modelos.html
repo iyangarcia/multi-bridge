@@ -26,10 +26,14 @@
     <div class="pagina-cab">
       <div>
         <h1>Formatos de destino</h1>
-        <div class="sub">Cómo quieres recibir los datos. Elige uno para verlo, crea el tuyo aquí mismo o sube un ejemplo de la salida.</div>
+        <div class="sub" data-i18n-html>Cómo quieres recibir los datos. Elige uno para verlo, o crea el tuyo de tres maneras:
+          con <b>todos los campos de un archivo</b> (los mismos datos, en otro formato), campo a campo, o subiendo un ejemplo de la salida.</div>
       </div>
       <div class="fila-botones">
-        <button class="boton" id="btn-crear">+ Crear formato</button>
+        <label class="boton" title="Cada columna del archivo pasa a ser un campo, con su nombre y su tipo. Solo se toman los nombres y tipos; el archivo no se guarda">
+          <input type="file" id="file-todos" accept=".csv,.tsv,.txt,.json,.ndjson,.hl7,.xlsx,.xml" hidden>+ Todos los campos de un archivo…
+        </label>
+        <button class="boton secundario" id="btn-crear">+ Crear campo a campo</button>
         <label class="boton secundario" title="Un ejemplo de cómo quieres los datos (y su .rules.json si lo tienes): se queda en memoria, no se guarda">
           <input type="file" id="file-ejemplo" accept=".csv,.tsv,.txt,.json,.xlsx,.xml" multiple hidden>Subir un ejemplo…
         </label>
@@ -53,7 +57,7 @@
           <div class="formatos-directos" id="e-formatos"></div>
           <small class="pista">FHIR y HL7 v2 se definen con un ejemplo: súbelo con «Subir un ejemplo…».</small>
         </div>
-        <div class="campo-form">Empezar con los campos de…
+        <div class="campo-form">Recibir todos los campos de…
           <div class="fila-botones-izq">
             <select id="e-desde-ejemplo" aria-label="Tomar los campos de un ejemplo sintético">
               <option value="">un ejemplo sintético…</option>
@@ -62,7 +66,8 @@
               <input type="file" id="e-desde-archivo" accept=".csv,.tsv,.txt,.json,.ndjson,.hl7,.xlsx,.xml" hidden>un archivo tuyo…
             </label>
           </div>
-          <small class="pista">Opcional. Solo se toman los nombres y tipos de las columnas; el archivo no se guarda.</small>
+          <small class="pista">Opcional. Cada columna pasa a ser un campo, con su nombre y su tipo: luego desmarca las que no
+            quieras o cámbiales el nombre. Solo se toman nombres y tipos; el archivo no se guarda.</small>
         </div>
       </div>
       <div class="bloque-campos">
@@ -92,7 +97,7 @@
 
     <details class="plegable probar">
       <summary>Cómo se define un formato</summary>
-      <div class="sub">
+      <div class="sub" data-i18n-html>
         De dos maneras. Con una <b>lista de campos</b>: el formato (JSON, CSV, Excel o XML) y el nombre y tipo de cada
         campo; se crea aquí y se guarda en <code>expected/&lt;nombre&gt;.fields.json</code>, solo con nombres y tipos.
         O con un <b>ejemplo</b> de cómo quieres los datos, en su propio formato (también FHIR:
